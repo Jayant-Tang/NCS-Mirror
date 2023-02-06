@@ -27,6 +27,6 @@ jobs:
         export PATH=~/.local/bin:"$PATH"
         pwd
         mkdir ncs && cd ncs
-        west init -m https://github.com/nrfconnect/sdk-nrf -mr master
+        west init -m https://github.com/nrfconnect/sdk-nrf --mr master
         pwd
         west update
