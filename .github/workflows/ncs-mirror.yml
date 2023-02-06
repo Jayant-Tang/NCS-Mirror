@@ -1,0 +1,49 @@
+name: Gitee repos mirror periodic job for NCS
+on:
+  push:
+  #每天北京时间早上七点运行
+  #schedule:  
+  #- cron: '0 23 * * *'
+env:
+  PYTHON_VER: 3.8
+
+jobs:
+
+  # 第一个任务获取NCS中所有repo的url
+  get-repo-list:
+    name: Get all repos name in NCS west.yaml
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Use Python version ${{ env.PYTHON_VER }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VER }}
+    - name: Get the NCS
+      run: |
+        pip3 install --user west
+        export PATH=~/.local/bin:"$PATH"
+        mkdir ncs && cd ncs
+        west init -m https://github.com/nrfconnect/sdk-nrf --mr main
+        west update
+    - name: Process the west list text
+      id: set-matrix
+      run: |
+        echo "::set-output name=matrix::$(west list | awk '{print $4}' | sed "1d" | sed -e "s#^https://github.com/.\+/##" | jq -R .| jq -s -c)"
+    
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+  # 第二个任务通过Gitee API 创建仓库（gitee只允许创建私有仓库），若仓库已存在则会失败
+  create-gitee-repo:
+    name: Create repo on Gitee
+    needs: get-repo-list
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repo-name: ${{ fromJson(needs.get-repo-list.outputs.matrix) }}
+
+    steps:
+    - name: use gitee REST API
+      run: |
+        curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"${{ secrets.GITEE_API_TOKEN }}","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
