@@ -17,6 +17,7 @@ jobs:
     #   ncs-repo-list: ${{ steps. }}
     steps:
     - name: Use Python version ${{ env.PYTHON_VER }}
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VER }}
     - name: Get the NCS
