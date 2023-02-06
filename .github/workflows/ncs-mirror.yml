@@ -21,9 +21,9 @@ jobs:
         python-version: ${{ env.PYTHON_VER }}
     
     - run: |
-      pip3 install --user west
-      export PATH=~/.local/bin:"$PATH"
-      sudo apt-get install -y jq
+        pip3 install --user west
+        export PATH=~/.local/bin:"$PATH"
+        sudo apt-get install -y jq
 
     # get all tags of release version, convert them to json array
     - name: Get all release tags in sdk-nrf
