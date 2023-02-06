@@ -30,3 +30,5 @@ jobs:
         west init -m https://github.com/nrfconnect/sdk-nrf --mr main
         pwd
         west update
+        grep -h -E "url =" -r --include ".gitmodules" .
+        grep -h -E "url-base" -r --include "west.yml" .
