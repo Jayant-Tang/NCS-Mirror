@@ -9,7 +9,7 @@ env:
 
 jobs:
 
-  # 第一个任务获取NCS中所有repo的url
+  # Get all repo names in sdk-nrf/west.yaml (which includes sdk-zephyr/west.yaml), convert them to json array
   get-repo-list:
     name: Get all repos name in NCS west.yaml
     runs-on: ubuntu-latest
@@ -19,13 +19,36 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VER }}
-    - name: Get the NCS
+    
+    - run: |
+      pip3 install --user west
+      export PATH=~/.local/bin:"$PATH"
+      sudo apt-get install -y jq
+
+    # get all tags of release version, convert them to json array
+    - name: Get all release tags in sdk-nrf
       run: |
-        pip3 install --user west
-        export PATH=~/.local/bin:"$PATH"
+        mkdir -p ncs/nrf && cd ncs/nrf
+        git init
+        git remote add origin https://github.com/nrfconnect/sdk-nrf.git
+        git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" | jq -R . | jq -s -c > ../../all-tags.json
+
+    # if there is no new release version, use the NCS in cache
+    - name: Cache the NCS
+      id: cache-primes
+      uses: actions/cache@v3
+      with:
+        path: ./ncs
+        key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('all-tags.json') }}
+
+    # if there is new release version, the cache key will change. Fetch the newest NCS.
+    - name: Get the NCS
+      if: steps.cache-primes.outputs.cache-hit != 'true'
+      run: |
         mkdir ncs && cd ncs
         west init -m https://github.com/nrfconnect/sdk-nrf --mr main
         west update
+
     - name: Process the west list text, set them as output
       id: process-west-list
       run: |
@@ -35,7 +58,7 @@ jobs:
     outputs:
       matrix: ${{ steps.process-west-list.outputs.repo-list }}
 
-  # 第二个任务通过Gitee API 创建仓库（gitee只允许创建私有仓库），若仓库已存在则会失败
+  # 第二个任务通过Gitee API 创建仓库（gitee只允许创建私有仓库），若仓库已存在则不会重复创建，curl命令不会失败
   create-gitee-repo:
     name: Create repo on Gitee
     needs: [ get-repo-list ]
