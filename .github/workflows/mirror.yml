@@ -4,6 +4,8 @@ on:
   #每天北京时间早上七点运行
   #schedule:  
   #- cron: '0 23 * * *'
+env:
+  PYTHON_VER: 3.8
 
 jobs:
 
@@ -14,8 +16,16 @@ jobs:
     # outputs:
     #   ncs-repo-list: ${{ steps. }}
     steps:
+    - name: Use Python version ${{ env.PYTHON_VER }}
+        with:
+          python-version: ${{ env.PYTHON_VER }}
     - name: Get the NCS
       run: |
+        sudo apt update -y
+        sudo apt full-upgrade -y
+        sudo apt install -y --no-install-recommends git
+        pip3 install --user west
+        export PATH=~/.local/bin:"$PATH"
         pwd
         west init -m https://github.com/nrfconnect/sdk-nrf -mr master ncs
         pwd
