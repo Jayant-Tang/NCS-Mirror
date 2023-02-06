@@ -17,8 +17,8 @@ jobs:
     #   ncs-repo-list: ${{ steps. }}
     steps:
     - name: Use Python version ${{ env.PYTHON_VER }}
-        with:
-          python-version: ${{ env.PYTHON_VER }}
+      with:
+        python-version: ${{ env.PYTHON_VER }}
     - name: Get the NCS
       run: |
         sudo apt update -y
