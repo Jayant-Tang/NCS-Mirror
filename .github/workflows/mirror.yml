@@ -20,10 +20,9 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VER }}
+        cache: 'pip'
     - name: Get the NCS
       run: |
-        sudo apt update -y
-        sudo apt upgrade -y
         sudo apt install -y --no-install-recommends git
         pip3 install --user west
         export PATH=~/.local/bin:"$PATH"
