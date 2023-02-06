@@ -1,0 +1,22 @@
+name: Gitee repos mirror periodic job
+on:
+  push:
+  #每天北京时间早上七点运行
+  #schedule:  
+  #- cron: '0 23 * * *'
+
+jobs:
+
+  # 第一个任务递归获取NCS中所有repo的url
+  get-repo-list:
+    name: Get all repos and sbumodules name in NCS
+    runs-on: ubuntu-latest
+    outputs:
+      ncs-repo-list: ${{ steps. }}
+    steps:
+    - name: Get the NCS
+      run: |
+      pwd
+      west init -m https://github.com/nrfconnect/sdk-nrf -mr master ncs
+      pwd
+      west update
