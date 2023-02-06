@@ -26,18 +26,19 @@ jobs:
         mkdir ncs && cd ncs
         west init -m https://github.com/nrfconnect/sdk-nrf --mr main
         west update
-    - name: Process the west list text
-      id: set-matrix
+    - name: Process the west list text, set them as output
+      id: process-west-list
       run: |
-        echo "::set-output name=matrix::$(west list | awk '{print $4}' | sed "1d" | sed -e "s#^https://github.com/.\+/##" | jq -R .| jq -s -c)"
+        cd ncs
+        echo "repo-list=$(west list | awk '{print $4}' | sed "1d" | sed -e "s#^https://github.com/.\+/##" | jq -R .| jq -s -c)" >> $GITHUB_OUTPUT
     
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.process-west-list.outputs.repo-list }}
 
   # 第二个任务通过Gitee API 创建仓库（gitee只允许创建私有仓库），若仓库已存在则会失败
   create-gitee-repo:
     name: Create repo on Gitee
-    needs: get-repo-list
+    needs: [ get-repo-list ]
     runs-on: ubuntu-latest
     strategy:
       matrix:
