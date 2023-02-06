@@ -11,8 +11,8 @@ jobs:
   get-repo-list:
     name: Get all repos and sbumodules name in NCS
     runs-on: ubuntu-latest
-    outputs:
-      ncs-repo-list: ${{ steps. }}
+    # outputs:
+    #   ncs-repo-list: ${{ steps. }}
     steps:
     - name: Get the NCS
       run: |
