@@ -167,7 +167,10 @@ jobs:
         ls -la
         west update
         cd ..
-        west forall -c "west list -f '{url}' . | grep -E '^https:' && git remote add gitee git@gitee.com:$GITEE_USER/$(west list -f '{url}' .| sed -e "s#^https://github.com/.\+/##" )" 2> /dev/null
-        west forall -c "git push gitee HEAD:refs/heads/gitee-mirror"
+        echo "#/bin/sh" > add-remote.sh
+        echo 'name=$(git remote -v | awk '{print $2}' | grep -E '^https' | uniq | sed -e 's#^https://github.com/.\+/##')' > add-remote.sh
+        echo > 'echo $name' > add-remote.sh
+        chmod a+x add-remote.sh
+        west forall -c "$(pwd)/add-remote.sh"
 
         
