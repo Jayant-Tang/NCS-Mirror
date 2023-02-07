@@ -174,8 +174,8 @@ jobs:
         which bash
         cd nrf
         source ../add-remote.sh
-        git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##");
-        echo $(git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##");
+        git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##"
+        echo $(git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##")
         cd ..
         west forall -c "source $(pwd)/add-remote.sh"
 
