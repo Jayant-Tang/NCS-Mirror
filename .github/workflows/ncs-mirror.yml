@@ -173,10 +173,15 @@ jobs:
 
 
         echo "===="
-        cd nrf
-        pwd 
-        ls -la
         git remote -v
+        echo "===="
+        git remote -v | awk "{print $2}"
+        echo "===="
+        git remote -v | awk "{print $2}" | grep -E "^https"
+        echo "===="
+        git remote -v | awk "{print $2}" | grep -E "^https" | uniq
+        echo "===="
+        git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##"
         echo "===="
         ../add-remote.sh
         echo "===="
