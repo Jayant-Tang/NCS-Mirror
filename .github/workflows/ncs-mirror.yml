@@ -164,9 +164,9 @@ jobs:
         cd ..
 
         echo "#/usr/bin/bash" > add-remote.sh
-        echo 'name=$(git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##");' >> add-remote.sh
+        echo "name=$(git remote -v | awk '{print $2}' | grep -E '^https' | uniq | sed -e 's#^https://github.com/.\+/##');" >> add-remote.sh
         echo 'echo $name' >> add-remote.sh
-        echo 'echo hello' >> add-remote.sh
+        echo "echo hello" >> add-remote.sh
         chmod a+x add-remote.sh
         
         cat add-remote.sh
@@ -176,15 +176,15 @@ jobs:
         echo "1===="
         git remote -v
         echo "2===="
-        git remote -v | awk "{print $2}"
+        git remote -v | awk '{print $2}'
         echo "3===="
-        git remote -v | awk "{print $2}" | grep -E "^https"
+        git remote -v | awk '{print $2}' | grep -E "^https"
         echo "4===="
-        git remote -v | awk "{print $2}" | grep -E "^https" | uniq
+        git remote -v | awk '{print $2}' | grep -E "^https" | uniq
         echo "5===="
-        git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##"
+        git remote -v | awk '{print $2}' | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##"
         echo "6===="
-        echo $(git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##")
+        echo $(git remote -v | awk '{print $2}' | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##")
         echo "7===="
         ../add-remote.sh
         echo "8===="
