@@ -85,7 +85,7 @@ jobs:
   # 第三个任务推送所有仓库的commit
   push-to-gitee:
     name: Push repos to gitee
-    needs: [ create-gitee-repo get-repo-list ]
+    needs: [ create-gitee-repo, get-repo-list ]
     runs-on: ubuntu-latest
     strategy:
       matrix:
