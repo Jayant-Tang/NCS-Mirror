@@ -62,7 +62,7 @@ jobs:
         cd ncs/nrf
         pwd
         ls -la
-        ehco "===="
+        echo "===="
         ls -la ..
         echo "===="
         ls -la ../..
