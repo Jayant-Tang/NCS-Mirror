@@ -90,7 +90,8 @@ jobs:
     strategy:
       matrix:
         tags: ${{ fromJson(needs.get-repo-list.outputs.tags-list) }}
-
+    
+    steps:
     - name: Use Python version ${{ env.PYTHON_VER }}
       uses: actions/setup-python@v4
       with:
