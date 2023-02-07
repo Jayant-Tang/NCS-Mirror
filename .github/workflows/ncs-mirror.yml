@@ -85,7 +85,6 @@ jobs:
   create-gitee-repo:
     name: Create repo on Gitee
     needs: [ get-repo-list ]
-    if: needs.get-repo-list.outputs.cache-primes.ncs-updated == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -93,6 +92,7 @@ jobs:
 
     steps:
     - name: use gitee REST API to create remote Repos
+      if: needs.get-repo-list.outputs.cache-primes.ncs-updated == 'true'
       run: |
         curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"$GITEE_TOKEN","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
   
