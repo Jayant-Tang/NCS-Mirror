@@ -34,7 +34,7 @@ jobs:
     - name: Get all release tags in sdk-nrf
       id: process-nrf-tags
       run: |
-        mkdir -p ncs/nrf && cd ncs/nrf
+        mkdir -p sdk-nrf && cd sdk-nrf
         git init
         git remote add origin https://github.com/nrfconnect/sdk-nrf.git
         git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" | jq -R . | jq -s -c > ../../all-tags.json
@@ -52,7 +52,10 @@ jobs:
     - name: Get the NCS
       if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
-        mkdir ncs && cd ncs && west init -m https://github.com/nrfconnect/sdk-nrf --mr main && west update
+        mkdir ncs 
+        cd ncs
+        west init -m https://github.com/nrfconnect/sdk-nrf --mr main
+        west update
     
     - name: Cache the NCS
       if: steps.cache-primes.outputs.cache-hit != 'true'
@@ -133,7 +136,7 @@ jobs:
     # get all tags of release version, convert them to json array
     - name: Get all release tags in sdk-nrf
       run: |
-        mkdir -p ncs/nrf && cd ncs/nrf
+        mkdir -p sdk-nrf && cd sdk-nrf
         git init
         git remote add origin https://github.com/nrfconnect/sdk-nrf.git
         git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" | jq -R . | jq -s -c > ../../all-tags.json
@@ -150,7 +153,8 @@ jobs:
     - name: Get the NCS
       if: steps.cache-primes-2.outputs.cache-hit != 'true'
       run: |
-        mkdir ncs && cd ncs
+        mkdir ncs
+        cd ncs
         west init -m https://github.com/nrfconnect/sdk-nrf --mr main
         west update
     - name: push all repos
