@@ -68,12 +68,6 @@ jobs:
       id: process-west-list
       run: |
         cd ncs/nrf
-        pwd
-        ls -la
-        echo "===="
-        ls -la ..
-        echo "===="
-        ls -la ../..
         git fetch
         git checkout main
         west update
@@ -84,9 +78,11 @@ jobs:
       tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
 
   # 第二个任务通过Gitee API 创建仓库（gitee只允许创建私有仓库），若仓库已存在则不会重复创建，curl命令不会失败
+  # 若NCS未发布新版本，此job不执行
   create-gitee-repo:
     name: Create repo on Gitee
     needs: [ get-repo-list ]
+    if: needs.get-repo-list.steps.cache-primes.outputs.cache-hit != 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -160,17 +156,16 @@ jobs:
 
     - name: push all repos
       run: |
-        pwd
-        ls -la
         cd ncs/nrf
-        pwd
-        ls -la
         west update
         cd ..
+
         echo "#/bin/sh" > add-remote.sh
-        echo 'name=$(git remote -v | awk '{print $2}' | grep -E '^https' | uniq | sed -e 's#^https://github.com/.\+/##')' > add-remote.sh
-        echo > 'echo $name' > add-remote.sh
+        echo 'name=$(git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##")' >> add-remote.sh
+        echo 'echo $name' >> add-remote.sh
         chmod a+x add-remote.sh
+        cat add-remote.sh
+
         west forall -c "$(pwd)/add-remote.sh"
 
         
