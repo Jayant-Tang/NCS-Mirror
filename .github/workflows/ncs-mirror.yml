@@ -102,9 +102,9 @@ jobs:
     name: Push repos to gitee
     needs: [ create-gitee-repo, get-repo-list ]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        tags: ${{ fromJson(needs.get-repo-list.outputs.tags-list) }}
+    # strategy:
+    #   matrix:
+    #     tags: ${{ fromJson(needs.get-repo-list.outputs.tags-list) }}
     
     steps:
     - name: Use Python version ${{ env.PYTHON_VER }}
@@ -157,9 +157,9 @@ jobs:
         cd ncs
         west init -m https://github.com/nrfconnect/sdk-nrf --mr main
         west update
-        
+
     - name: push all repos
-      run:
+      run: |
         pwd
         ls -la
         cd ncs/nrf
