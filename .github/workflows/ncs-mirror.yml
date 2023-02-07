@@ -171,22 +171,23 @@ jobs:
         
         cat add-remote.sh
 
-
-        echo "===="
+        # 进入nrf仓库
+        cd ncs/nrf
+        echo "1===="
         git remote -v
-        echo "===="
+        echo "2===="
         git remote -v | awk "{print $2}"
-        echo "===="
+        echo "3===="
         git remote -v | awk "{print $2}" | grep -E "^https"
-        echo "===="
+        echo "4===="
         git remote -v | awk "{print $2}" | grep -E "^https" | uniq
-        echo "===="
+        echo "5===="
         git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##"
-        echo "===="
-        ../add-remote.sh
-        echo "===="
-        git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##"
+        echo "6===="
         echo $(git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##")
+        echo "7===="
+        ../add-remote.sh
+        echo "8===="
         cd ..
         west forall -c "source $(pwd)/add-remote.sh"
 
