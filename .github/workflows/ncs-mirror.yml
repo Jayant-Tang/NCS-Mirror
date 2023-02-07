@@ -159,7 +159,8 @@ jobs:
         west update
     - name: push all repos
       run:
-        cd ncs/nrf && git checkout ${{ matrix.tags }} && west update
+        cd ncs/nrf
+        west update
         cd ..
         west forall -c "west list -f '{url}' . | grep -E '^https:' && git remote add gitee git@gitee.com:$GITEE_USER/$(west list -f '{url}' .| sed -e "s#^https://github.com/.\+/##" )" 2> /dev/null
         west forall -c "git push gitee HEAD:refs/heads/gitee-mirror"
