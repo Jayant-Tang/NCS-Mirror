@@ -172,7 +172,7 @@ jobs:
         cat add-remote.sh
 
         # 进入nrf仓库
-        cd ncs/nrf
+        cd nrf
         echo "1===="
         git remote -v
         echo "2===="
