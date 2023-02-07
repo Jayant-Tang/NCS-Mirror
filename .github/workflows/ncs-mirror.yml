@@ -41,11 +41,10 @@ jobs:
         echo "tags-list=$(cat ../../all-tags.json)" >> $GITHUB_OUTPUT
 
     # if there is no new release version, use the NCS in cache
-    - name: Cache the NCS
+    - name: Restore the NCS Cache
       id: cache-primes
-      uses: actions/cache@v3
+      uses: actions/cache/restore@v3
       with:
-        path: ./ncs
         key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('all-tags.json') }}
 
     # if there is new release version, the cache key will change. Fetch the newest NCS.
@@ -55,6 +54,13 @@ jobs:
         mkdir ncs && cd ncs
         west init -m https://github.com/nrfconnect/sdk-nrf --mr main
         west update
+    
+    - name: Cache the NCS
+      if: steps.cache-primes.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v3
+      with:
+        path: ./ncs
+        key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('all-tags.json') }}
 
     - name: Process the west list text, set them as output
       id: process-west-list
@@ -134,11 +140,10 @@ jobs:
         git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" | jq -R . | jq -s -c > ../../all-tags.json
 
     # if there is no new release version, use the NCS in cache
-    - name: Cache the NCS
+    - name: Restore the NCS
       id: cache-primes-2
-      uses: actions/cache@v3
+      uses: actions/cache/restore@v3
       with:
-        path: ./ncs
         key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('all-tags.json') }}
 
     # if there is new release version, the cache key will change. Fetch the newest NCS.
