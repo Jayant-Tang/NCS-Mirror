@@ -50,12 +50,14 @@ jobs:
 
     # if there is new release version, the cache key will change. Fetch the newest NCS.
     - name: Get the NCS
+      id: update-ncs-cache
       if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
         mkdir ncs 
         cd ncs
         west init -m https://github.com/nrfconnect/sdk-nrf --mr main
         west update
+        echo "ncs-updated=true" >> $GITHUB_OUTPUT
     
     - name: Cache the NCS
       if: steps.cache-primes.outputs.cache-hit != 'true'
@@ -76,13 +78,14 @@ jobs:
     outputs:
       repo-list: ${{ steps.process-west-list.outputs.repo-list }}
       tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
+      ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
 
   # 第二个任务通过Gitee API 创建仓库（gitee只允许创建私有仓库），若仓库已存在则不会重复创建，curl命令不会失败
   # 若NCS未发布新版本，此job不执行
   create-gitee-repo:
     name: Create repo on Gitee
     needs: [ get-repo-list ]
-    if: needs.get-repo-list.steps.cache-primes.outputs.cache-hit != 'true'
+    if: needs.get-repo-list.outputs.cache-primes.ncs-updated == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -91,7 +94,7 @@ jobs:
     steps:
     - name: use gitee REST API to create remote Repos
       run: |
-        curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"#GITEE_TOKEN","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
+        curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"$GITEE_TOKEN","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
   
   # 第三个任务推送所有仓库的commit
   push-to-gitee:
@@ -161,8 +164,8 @@ jobs:
         cd ..
 
         echo "#/bin/sh" > add-remote.sh
-        echo 'name=$(git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##")' >> add-remote.sh
-        echo 'echo $name' >> add-remote.sh
+        echo 'name=$(git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##");' >> add-remote.sh
+        echo 'echo ${name}' >> add-remote.sh
         chmod a+x add-remote.sh
         cat add-remote.sh
 
