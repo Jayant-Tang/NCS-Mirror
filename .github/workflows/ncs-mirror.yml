@@ -170,10 +170,16 @@ jobs:
         chmod a+x add-remote.sh
         
         cat add-remote.sh
-        which sh
-        which bash
+
+
+        echo "===="
         cd nrf
-        source ../add-remote.sh
+        pwd 
+        ls -la
+        git remote -v
+        echo "===="
+        ../add-remote.sh
+        echo "===="
         git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##"
         echo $(git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##")
         cd ..
