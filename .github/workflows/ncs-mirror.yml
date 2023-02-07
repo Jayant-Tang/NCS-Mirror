@@ -52,9 +52,7 @@ jobs:
     - name: Get the NCS
       if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
-        mkdir ncs && cd ncs
-        west init -m https://github.com/nrfconnect/sdk-nrf --mr main
-        west update
+        mkdir ncs && cd ncs && west init -m https://github.com/nrfconnect/sdk-nrf --mr main && west update
     
     - name: Cache the NCS
       if: steps.cache-primes.outputs.cache-hit != 'true'
@@ -157,9 +155,7 @@ jobs:
         west update
     - name: push all repos
       run:
-        cd ncs/nrf
-        git checkout ${{ matrix.tags }}
-        west update
+        cd ncs/nrf && git checkout ${{ matrix.tags }} && west update
         cd ..
         west forall -c "west list -f '{url}' . | grep -E '^https:' && git remote add gitee git@gitee.com:$GITEE_USER/$(west list -f '{url}' .| sed -e "s#^https://github.com/.\+/##" )" 2> /dev/null
         west forall -c "git push gitee HEAD:refs/heads/gitee-mirror"
