@@ -61,6 +61,11 @@ jobs:
       run: |
         cd ncs/nrf
         pwd
+        ls -la
+        ehco "===="
+        ls -la ..
+        echo "===="
+        ls -la ../..
         git fetch
         git checkout main
         west update
