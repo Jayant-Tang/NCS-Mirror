@@ -163,7 +163,7 @@ jobs:
         west update
         cd ..
 
-        echo "#/bin/bash" > add-remote.sh
+        echo "#/usr/bin/bash" > add-remote.sh
         echo 'name=$(git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##");' >> add-remote.sh
         echo 'echo $name' >> add-remote.sh
         echo 'echo hello' >> add-remote.sh
@@ -174,6 +174,8 @@ jobs:
         which bash
         cd nrf
         source ../add-remote.sh
+        git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##");
+        echo $(git remote -v | awk "{print $2}" | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##");)
         cd ..
         west forall -c "source $(pwd)/add-remote.sh"
 
