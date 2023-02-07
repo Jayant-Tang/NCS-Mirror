@@ -46,6 +46,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('all-tags.json') }}
+        path: ./ncs
 
     # if there is new release version, the cache key will change. Fetch the newest NCS.
     - name: Get the NCS
@@ -145,6 +146,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('all-tags.json') }}
+        path: ./ncs
 
     # if there is new release version, the cache key will change. Fetch the newest NCS.
     - name: Get the NCS
