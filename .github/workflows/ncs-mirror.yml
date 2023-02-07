@@ -61,6 +61,7 @@ jobs:
       run: |
         cd ncs/nrf
         pwd
+        git fetch
         git checkout main
         west update
         echo "repo-list=$(west list -f "{url}" | sed "1d" | sed -e "s#^https://github.com/.\+/##" | jq -R .| jq -s -c)" >> $GITHUB_OUTPUT
