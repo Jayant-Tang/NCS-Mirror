@@ -77,7 +77,7 @@ jobs:
           west update > /dev/null
           west forall -c "git remote -v >> ~/repo-list-raw.txt" > /dev/null
         done
-        cat ~/repo-list-raw.txt | awk '{print $2}' | grep -E '^https' | sed -e 's#^https://github.com/.\+/##' | sort -f | uniq | jq -R . | jq -s -c > ~/repo-list.json
+        cat ~/repo-list-raw.txt | awk '{print $2}' | grep -E '^https' | sed -e 's#^https://github.com/.\+/##' | sed -e 's#[.]git##' |sort -f | uniq | jq -R . | jq -s -c > ~/repo-list.json
         echo "====="
         cat ~/repo-list-raw.txt
         cat ~/repo-list.json
