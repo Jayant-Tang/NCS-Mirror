@@ -15,7 +15,7 @@ env:
 jobs:
 
   get-list:
-    name: Get all release tags in sdk-nrf, and all repo name in Manifest
+    name: Get all release tags in sdk-nrf
     runs-on: ubuntu-latest
     
     steps:
@@ -67,35 +67,97 @@ jobs:
         path: ./ncs
         key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('~/all-tags.json') }}
 
-    - name: Process the west list text, set them as output
+  outputs:
+    tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
+    ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
+
+
+  get-repo-list:
+    name: Get all repos name in every release version of sdk-nrf
+    runs-on: ubuntu-latest
+    needs: [ get-list ]
+    strategy:
+      matrix:
+        tags: ${{ fromJson(needs.get-list.outputs.tags-list) }}
+
+    steps:
+    - name: Use Python version ${{ env.PYTHON_VER }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VER }}
+    
+    - name: install dependencies
+      run: |
+        pip3 install --user west
+        export PATH=~/.local/bin:"$PATH"
+        sudo apt-get install -y jq
+      
+      - name: Restore the NCS
+      id: cache-primes
+      uses: actions/cache/restore@v3
+      with:
+        key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('~/all-tags.json') }}
+        path: ./ncs
+
+    - name: Get the NCS
+      if: steps.cache-primes.outputs.cache-hit != 'true'
+      run: |
+        mkdir ncs
+        cd ncs
+        west init -m https://github.com/nrfconnect/sdk-nrf --mr ${{ matrix.tags }}
+        west update
+
+    - name: Get all repos name in NCS ${{ matrix.tags }}
       id: process-west-list
       run: |
         cd ncs/nrf
-        git fetch > /dev/null
-        for version in $(cat ~/all-tags.txt);do
-          echo "===$version==="
-          git checkout $version > /dev/null
-          west update > /dev/null
-          west forall -c "git remote -v >> ~/repo-list-raw.txt"
-          echo "===$version==="
-        done
-        cat ~/repo-list-raw.txt | awk '{print $2}' | grep -E '^https' | sed -e 's#^https://github.com/.\+/##' | sed -e 's#[.]git##' |sort -f | uniq | jq -R . | jq -s -c > ~/repo-list.json
-        echo "====="
+        git checkout ${{ matrix.tags }}
+        west update
+        west forall -c "git remote -v >> ~/repo-list-raw.txt"
+        echo "=======repo list========"
         cat ~/repo-list-raw.txt
-        cat ~/repo-list.json
-        echo "====="
-        echo "repo-list=$(cat ~/repo-list.json)" >> $GITHUB_OUTPUT
+        # cat ~/repo-list-raw.txt | awk '{print $2}' | grep -E '^https' | sed -e 's#^https://github.com/.\+/##' | sed -e 's#[.]git##' |sort -f | uniq | jq -R . | jq -s -c > ~/repo-list.json
+        # cat ~/repo-list.json
+
+    - name: Upload the  repos name in NCS ${{ matrix.tags }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: NCS-${{ matrix.tags }}-repo-names
+        if-no-files-found: error
+        path: ~/repo-list-raw.txt
+        retention-days: 1
+
+
+  merge-repo-name-list:
+    name: Merge all repo names in marix
+    needs: [ get-repo-list ]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download matrix artifact
+      uses: actions/download-artifact@v3
+        with:
+          path: downloaded_artifacts
+  
+    - name: Merge all repo names
+      id: merge-repo-names
+      run: |
+        echo "=======repo url list========"
+        cat downloaded_artifacts/* | awk '{print $2}' | sort -f | uniq > ~/repo-url-list.txt
+        cat ~/repo-url-list.txt
+        echo "=======repo list========"
+        cat ~/repo-url-list.txt |sed -e 's#^https://github.com/.\+/##' | sed -e 's#[.]git##' | sort -f > ~/repo-list.txt
+        cat  ~/repo-list.txt
+        echo "=======repo list json========"
+        cat  ~/repo-list.txt | uniq | jq -R . | jq -s -c > ~/repo-list.json
+        cat  ~/repo-list.json
+        echo "repo-list=$(cat cat  ~/repo-list.json)" >> $GITHUB_OUTPUT
     
     outputs:
-      repo-list: ${{ steps.process-west-list.outputs.repo-list }}
-      tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
-      ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
+      repo-list: ${{ steps.merge-repo-names.outputs.repo-list }}
 
-  # 第二个任务通过Gitee API 创建仓库（gitee只允许创建私有仓库），若仓库已存在则不会重复创建，curl命令不会失败
-  # 若NCS未发布新版本，此job不执行
   create-gitee-repo:
     name: Create repo on Gitee
-    needs: [ get-list ]
+    needs: [ merge-repo-name-list ]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -107,7 +169,7 @@ jobs:
       run: |
         curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
   
-  # 第三个任务推送所有仓库的commit
+
   push-to-gitee:
     name: Push repos to gitee
     needs: [ create-gitee-repo, get-list ]
@@ -153,7 +215,7 @@ jobs:
 
     # if there is no new release version, use the NCS in cache
     - name: Restore the NCS
-      id: cache-primes-2
+      id: cache-primes
       uses: actions/cache/restore@v3
       with:
         key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('~/all-tags.json') }}
@@ -161,7 +223,7 @@ jobs:
 
     # if there is new release version, the cache key will change. Fetch the newest NCS.
     - name: Get the NCS
-      if: steps.cache-primes-2.outputs.cache-hit != 'true'
+      if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
         mkdir ncs
         cd ncs
