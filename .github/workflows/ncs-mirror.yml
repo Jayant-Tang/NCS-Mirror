@@ -94,16 +94,16 @@ jobs:
     - name: use gitee REST API to create remote Repos
       if: needs.get-repo-list.outputs.cache-primes.ncs-updated == 'true'
       run: |
-        curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"$GITEE_TOKEN","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
+        curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"${{ GITEE_TOKEN }}","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
   
   # 第三个任务推送所有仓库的commit
   push-to-gitee:
     name: Push repos to gitee
     needs: [ create-gitee-repo, get-repo-list ]
     runs-on: ubuntu-latest
-    # strategy:
-    #   matrix:
-    #     tags: ${{ fromJson(needs.get-repo-list.outputs.tags-list) }}
+    strategy:
+      matrix:
+        tags: ${{ fromJson(needs.get-repo-list.outputs.tags-list) }}
     
     steps:
     - name: Use Python version ${{ env.PYTHON_VER }}
@@ -160,35 +160,22 @@ jobs:
     - name: push all repos
       run: |
         cd ncs/nrf
+        echo "Now in: $(pwd)"
+        git checkout ${{ matrix.tags }}
         west update
         cd ..
+        echo "===="
+        echo "Now in: $(pwd)"
 
-        echo "#/usr/bin/bash" > add-remote.sh
-        echo "name=\$(git remote -v | awk '{print \$2}' | grep -E '^https' | uniq | sed -e 's#^https://github.com/.\+/##')" >> add-remote.sh
-        echo 'echo $name' >> add-remote.sh
-        echo "echo hello" >> add-remote.sh
-        chmod a+x add-remote.sh
+        echo "#/usr/bin/bash" > push-to-gitee.sh
+        echo "name=\$(git remote -v | awk '{print \$2}' | grep -E '^https' | uniq | sed -e 's#^https://github.com/.\+/##')" >> push-to-gitee.sh
+        echo "echo \$name" >> push-to-gitee.sh
+        echo "git remote add gitee git@gitee.com:${{ env.GITEE_USER }}/\$name" >>  push-to-gitee.sh
+        echo "git push gitee HEAD:refs/tags/NCS-${{ matrix.tags }}"
+
+        chmod a+x push-to-gitee.sh
+        cat push-to-gitee.sh
         
-        cat add-remote.sh
-
-        # 进入nrf仓库
-        cd nrf
-        echo "1===="
-        git remote -v
-        echo "2===="
-        git remote -v | awk '{print $2}'
-        echo "3===="
-        git remote -v | awk '{print $2}' | grep -E "^https"
-        echo "4===="
-        git remote -v | awk '{print $2}' | grep -E "^https" | uniq
-        echo "5===="
-        git remote -v | awk '{print $2}' | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##"
-        echo "6===="
-        echo $(git remote -v | awk '{print $2}' | grep -E "^https" | uniq | sed -e "s#^https://github.com/.\+/##")
-        echo "7===="
-        ../add-remote.sh
-        echo "8===="
-        cd ..
-        west forall -c "$(pwd)/add-remote.sh"
+        west forall -c "$(pwd)/push-to-gitee.sh"
 
         
