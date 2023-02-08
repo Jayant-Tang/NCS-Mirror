@@ -73,9 +73,9 @@ jobs:
         cd ncs/nrf
         git fetch
         for version in $(cat ../../all-tags.txt);do
-          git checkout $version > dev/null
-          west update > dev/null
-          west forall -c "git remote -v >> ~/repo-list-raw.txt" > dev/null
+          git checkout $version > /dev/null
+          west update > /dev/null
+          west forall -c "git remote -v >> ~/repo-list-raw.txt" > /dev/null
         done
         cat ~/repo-list-raw.txt | awk '{print $2}' | grep -E '^https' | sed -e 's#^https://github.com/.\+/##' | sort -f | uniq | jq -R . | jq -s -c > ~/repo-list.json
         echo "====="
