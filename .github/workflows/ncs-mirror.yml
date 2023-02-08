@@ -38,7 +38,7 @@ jobs:
         git init
         git remote add origin https://github.com/nrfconnect/sdk-nrf.git
         git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" | jq -R . | jq -s -c > ~/all-tags.json
-        git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" > ../all-tags.txt
+        git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" > ~/all-tags.txt
         echo "tags-list=$(cat ~/all-tags.json)" >> $GITHUB_OUTPUT
 
     # if there is no new release version, use the NCS in cache
@@ -71,8 +71,8 @@ jobs:
       id: process-west-list
       run: |
         cd ncs/nrf
-        git fetch
-        for version in $(cat ../../all-tags.txt);do
+        git fetch > /dev/null
+        for version in $(cat ~/all-tags.txt);do
           git checkout $version > /dev/null
           west update > /dev/null
           west forall -c "git remote -v >> ~/repo-list-raw.txt" > /dev/null
@@ -97,11 +97,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        repo-name: ${{ fromJson(needs.get-repo-list.outputs.repo-list) }}
+        repo-name: ${{ fromJson(needs.get-list.outputs.repo-list) }}
 
     steps:
     - name: use gitee REST API to create remote Repos
-      #if: needs.get-repo-list.outputs.cache-primes.ncs-updated == 'true'
+      #if: needs.get-list.outputs.cache-primes.ncs-updated == 'true'
       run: |
         curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
   
@@ -112,7 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tags: ${{ fromJson(needs.get-repo-list.outputs.tags-list) }}
+        tags: ${{ fromJson(needs.get-list.outputs.tags-list) }}
     
     steps:
     - name: Use Python version ${{ env.PYTHON_VER }}
