@@ -92,12 +92,12 @@ jobs:
         export PATH=~/.local/bin:"$PATH"
         sudo apt-get install -y jq
       
-      - name: Restore the NCS
-      id: cache-primes
-      uses: actions/cache/restore@v3
-      with:
-        key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('~/all-tags.json') }}
-        path: ./ncs
+    - name: Restore the NCS
+    id: cache-primes
+    uses: actions/cache/restore@v3
+    with:
+      key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('~/all-tags.json') }}
+      path: ./ncs
 
     - name: Get the NCS
       if: steps.cache-primes.outputs.cache-hit != 'true'
