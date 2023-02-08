@@ -126,9 +126,8 @@ jobs:
         echo "    User git" >> ~/.ssh/config
         echo "    IdentityFile ~/.ssh/id_ed25519" >> ~/.ssh/config
         echo "    IdentitiesOnly yes" >> ~/.ssh/config
-        cat ~/.ssh/config
-        cat ~/.ssh/id_ed25519
         ssh-keyscan github.com >> ~/.ssh/known_hosts
+        ssh-add ~/.ssh/id_ed25519
         git config --global user.name $GIT_USER
         git config --global user.email $GIT_EMAIL
         
