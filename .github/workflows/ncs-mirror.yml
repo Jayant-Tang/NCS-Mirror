@@ -119,9 +119,8 @@ jobs:
 
         sudo timedatectl set-timezone "Asia/Shanghai"
         mkdir -p ~/.ssh/
-        echo "$GITEE_PRI" > ~/.ssh/id_ed25519
+        echo "${{ env.GITEE_PRI }}" > ~/.ssh/id_ed25519
         chmod 600 ~/.ssh/id_ed25519
-        chmod a+rw ~/.ssh/config
         echo "Host gitee.com" >> ~/.ssh/config
         echo "    HostName gitee.com" >> ~/.ssh/config
         echo "    User git" >> ~/.ssh/config
