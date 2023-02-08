@@ -14,9 +14,8 @@ env:
 
 jobs:
 
-  # Get all repo names in sdk-nrf/west.yaml (which includes sdk-zephyr/west.yaml), convert them to json array
-  get-repo-list:
-    name: Get all repos name in NCS west.yaml
+  get-tasg-list:
+    name: Get all release tags in sdk-nrf, and all repo name in Manifest
     runs-on: ubuntu-latest
     
     steps:
@@ -25,20 +24,22 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VER }}
     
-    - run: |
+    - name: install dependencies
+      run: |
         pip3 install --user west
         export PATH=~/.local/bin:"$PATH"
         sudo apt-get install -y jq
 
-    # get all tags of release version, convert them to json array
     - name: Get all release tags in sdk-nrf
       id: process-nrf-tags
       run: |
-        mkdir -p sdk-nrf && cd sdk-nrf
+        mkdir -p sdk-nrf
+        cd sdk-nrf
         git init
         git remote add origin https://github.com/nrfconnect/sdk-nrf.git
-        git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" | jq -R . | jq -s -c > ../../all-tags.json
-        echo "tags-list=$(cat ../../all-tags.json)" >> $GITHUB_OUTPUT
+        git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" | jq -R . | jq -s -c > ../all-tags.json
+        git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" > ../all-tags.txt
+        echo "tags-list=$(cat ../all-tags.json)" >> $GITHUB_OUTPUT
 
     # if there is no new release version, use the NCS in cache
     - name: Restore the NCS Cache
@@ -48,7 +49,7 @@ jobs:
         key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('all-tags.json') }}
         path: ./ncs
 
-    # if there is new release version, the cache key will change. Fetch the newest NCS.
+    # if there is a new release version, the cache key will change. Fetch the newest NCS.
     - name: Get the NCS
       id: update-ncs-cache
       if: steps.cache-primes.outputs.cache-hit != 'true'
@@ -71,9 +72,13 @@ jobs:
       run: |
         cd ncs/nrf
         git fetch
-        git checkout main
-        west update
-        echo "repo-list=$(west list -f "{url}" | sed "1d" | sed -e "s#^https://github.com/.\+/##" | jq -R .| jq -s -c)" >> $GITHUB_OUTPUT
+        for version in $(cat ../../all-tags.txt);do
+          git checkout $version
+          west update
+          west forall -c "git remote -v >> ~/repo-list-raw.txt"
+        done
+        cat ~/repo-list-raw.txt | awk '{print $2}' | grep -E '^https' | sed -e 's#^https://github.com/.\+/##' | sort -f | uniq | jq -R . | jq -s -c > ~/repo-list.json
+        echo "repo-list=$(cat ~/repo-list.json)" >> $GITHUB_OUTPUT
     
     outputs:
       repo-list: ${{ steps.process-west-list.outputs.repo-list }}
@@ -92,7 +97,7 @@ jobs:
 
     steps:
     - name: use gitee REST API to create remote Repos
-      if: needs.get-repo-list.outputs.cache-primes.ncs-updated == 'true'
+      #if: needs.get-repo-list.outputs.cache-primes.ncs-updated == 'true'
       run: |
         curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
   
