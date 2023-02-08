@@ -67,9 +67,9 @@ jobs:
         path: ./ncs
         key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('~/all-tags.json') }}
 
-  outputs:
-    tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
-    ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
+    outputs:
+      tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
+      ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
 
 
   get-repo-list:
