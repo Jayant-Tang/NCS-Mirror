@@ -135,8 +135,8 @@ jobs:
     steps:
     - name: Download matrix artifact
       uses: actions/download-artifact@v3
-        with:
-          path: downloaded_artifacts
+      with:
+        path: downloaded_artifacts
   
     - name: Merge all repo names
       id: merge-repo-names
