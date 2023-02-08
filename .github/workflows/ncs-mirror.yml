@@ -69,8 +69,7 @@ jobs:
 
     outputs:
       tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
-      # ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
-      ncs-updated: true
+      ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
 
 
   get-repo-list:
@@ -244,6 +243,9 @@ jobs:
         echo "git remote add gitee git@gitee.com:${{ env.GITEE_USER }}/\$name" >>  push-to-gitee.sh
         echo "git remote -v" >>  push-to-gitee.sh
         echo "git push gitee HEAD:refs/tags/NCS-${{ matrix.tags }}"  >>  push-to-gitee.sh
+        echo "git checkout `git rev-list --max-parents=0 HEAD | tail -n 1`"  >>  push-to-gitee.sh
+        echo "git checkout -b init"  >>  push-to-gitee.sh
+        echo "git push gitee HEAD:refs/heads/init"  >>  push-to-gitee.sh
 
         chmod a+x push-to-gitee.sh
 
