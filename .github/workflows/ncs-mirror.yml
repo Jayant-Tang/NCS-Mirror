@@ -167,14 +167,16 @@ jobs:
         echo "===="
         echo "Now in: $(pwd)"
 
-        echo "#/usr/bin/bash" > push-to-gitee.sh
+        echo "#!/bin/bash -v" > push-to-gitee.sh
         echo "name=\$(git remote -v | awk '{print \$2}' | grep -E '^https' | uniq | sed -e 's#^https://github.com/.\+/##')" >> push-to-gitee.sh
-        echo "echo \$name" >> push-to-gitee.sh
         echo "git remote add gitee git@gitee.com:${{ env.GITEE_USER }}/\$name" >>  push-to-gitee.sh
-        echo "git push gitee HEAD:refs/tags/NCS-${{ matrix.tags }}"
+        echo "git push gitee HEAD:refs/tags/NCS-${{ matrix.tags }}"  >>  push-to-gitee.sh
 
         chmod a+x push-to-gitee.sh
+
+        echo "==== will excute script below ===="
         cat push-to-gitee.sh
+        echo "=================================="
 
         west forall -c "$(pwd)/push-to-gitee.sh"
 
