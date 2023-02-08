@@ -170,6 +170,7 @@ jobs:
         echo "#!/bin/bash -v" > push-to-gitee.sh
         echo "name=\$(git remote -v | awk '{print \$2}' | grep -E '^https' | uniq | sed -e 's#^https://github.com/.\+/##')" >> push-to-gitee.sh
         echo "git remote add gitee git@gitee.com:${{ env.GITEE_USER }}/\$name" >>  push-to-gitee.sh
+        echo "git remote -v" >>  push-to-gitee.sh
         echo "git push gitee HEAD:refs/tags/NCS-${{ matrix.tags }}"  >>  push-to-gitee.sh
 
         chmod a+x push-to-gitee.sh
