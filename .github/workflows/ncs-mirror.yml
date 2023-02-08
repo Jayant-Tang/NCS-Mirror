@@ -14,7 +14,7 @@ env:
 
 jobs:
 
-  get-tasg-list:
+  get-list:
     name: Get all release tags in sdk-nrf, and all repo name in Manifest
     runs-on: ubuntu-latest
     
@@ -89,7 +89,7 @@ jobs:
   # 若NCS未发布新版本，此job不执行
   create-gitee-repo:
     name: Create repo on Gitee
-    needs: [ get-repo-list ]
+    needs: [ get-list ]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -104,7 +104,7 @@ jobs:
   # 第三个任务推送所有仓库的commit
   push-to-gitee:
     name: Push repos to gitee
-    needs: [ create-gitee-repo, get-repo-list ]
+    needs: [ create-gitee-repo, get-list ]
     runs-on: ubuntu-latest
     strategy:
       matrix:
