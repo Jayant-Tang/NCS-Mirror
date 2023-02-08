@@ -69,7 +69,8 @@ jobs:
 
     outputs:
       tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
-      ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
+      # ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
+      ncs-updated: true
 
 
   get-repo-list:
@@ -116,8 +117,6 @@ jobs:
         west forall -c "git remote -v >> ~/repo-list-raw.txt"
         echo "=======repo list========"
         cat ~/repo-list-raw.txt
-        # cat ~/repo-list-raw.txt | awk '{print $2}' | grep -E '^https' | sed -e 's#^https://github.com/.\+/##' | sed -e 's#[.]git##' |sort -f | uniq | jq -R . | jq -s -c > ~/repo-list.json
-        # cat ~/repo-list.json
 
     - name: Upload the  repos name in NCS ${{ matrix.tags }}
       uses: actions/upload-artifact@v3
@@ -157,15 +156,15 @@ jobs:
 
   create-gitee-repo:
     name: Create repo on Gitee
-    needs: [ merge-repo-name-list ]
+    needs: [ merge-repo-name-list, get-list ]
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        repo-name: ${{ fromJson(needs.get-list.outputs.repo-list) }}
+        repo-name: ${{ fromJson(needs.merge-repo-name-list.outputs.repo-list) }}
 
     steps:
     - name: use gitee REST API to create remote Repos
-      #if: needs.get-list.outputs.cache-primes.ncs-updated == 'true'
+      if: needs.get-list.outputs.ncs-updated == 'true'
       run: |
         curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
   
