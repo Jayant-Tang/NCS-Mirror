@@ -113,7 +113,7 @@ jobs:
         path: ./ncs
 
     - name: Get the NCS
-      if: needs.get-list.outputs.ncs-updated != true
+      if: steps.cache-primes-2.outputs.cache-hit != 'true'
       run: |
         mkdir ncs
         cd ncs
