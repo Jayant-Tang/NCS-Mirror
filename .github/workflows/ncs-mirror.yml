@@ -109,6 +109,8 @@ jobs:
       with:
         name: all-repos.json
         path: ~/merge.json
+        retention-days: 5
+
 
     outputs:
       tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
