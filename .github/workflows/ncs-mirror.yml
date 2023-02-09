@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
     - name: Use Python version ${{ env.PYTHON_VER }}
       uses: actions/setup-python@v4
       with:
@@ -54,7 +57,7 @@ jobs:
         path: ./ncs
 
     # if there is a new release version, the cache key will change. Fetch the newest NCS.
-    - name: Get the NCS
+    - name: Get the NCS and Save
       id: update-ncs-cache
       if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
@@ -76,99 +79,34 @@ jobs:
         path: ./ncs
         key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('all-tags.json') }}
 
+    - name:  Get all repo's URL
+      id: process-west-list
+      run: |
+        chmod a+x get-all-repos.sh
+        cd ncs
+
+        for version in $(cat ../all-tags.txt); do
+          cd nrf
+          git checkout $version
+          cd ..
+
+          west update
+          west forall -c "$(pwd)/../get-all-repos.sh"  
+        done
+        cat ~/repo-list-raw.txt
+
+    - name: Merge repo url list
+      run: |
+        cat ~/repo-list-raw.txt | sort -f | uniq > ~/repo-list.txt
+        chmod a+x merge-to-json.sh
+        ./merge-to-json.sh ~/repo-list.txt
+        cat ~/merge.json
+        echo "repo-list-json=$(cat ~/merge.json)" >> $GITHUB_OUTPUT
+
     outputs:
       tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
       tags-hash: ${{ steps.process-nrf-tags.outputs.tags-hash }}
       ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
-
-
-  get-repo-list:
-    name: Get all repos name
-    runs-on: ubuntu-latest
-    needs: [ get-list ]
-    strategy:
-      matrix:
-        tags: ${{ fromJson(needs.get-list.outputs.tags-list) }}
-
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-
-    - name: Use Python version ${{ env.PYTHON_VER }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VER }}
-    
-    - name: install dependencies
-      run: |
-        pip3 install --user west
-        export PATH=~/.local/bin:"$PATH"
-        sudo apt-get install -y jq
-      
-    - name: Restore the NCS
-      id: cache-primes-2
-      uses: actions/cache/restore@v3
-      with:
-        key: ${{ runner.OS }}-NCS-cache-${{ needs.get-list.outputs.tags-hash }}
-        path: ./ncs
-
-    - name: Get the NCS
-      if: steps.cache-primes-2.outputs.cache-hit != 'true'
-      run: |
-        mkdir ncs
-        cd ncs
-        west init -m https://github.com/nrfconnect/sdk-nrf --mr ${{ matrix.tags }}
-        west update
-
-    - name: Get all repos name in NCS ${{ matrix.tags }}
-      id: process-west-list
-      run: |
-        cd ncs/nrf
-        git checkout ${{ matrix.tags }}
-        west update
-        cd ../
-        chmod a+x ../get-all-repos.sh
-        cd ncs
-        west forall -c "$(pwd)/../get-all-repos.sh"
-
-    - name: Upload the  repos name in NCS ${{ matrix.tags }}
-      uses: actions/upload-artifact@v3
-      with:
-        name: NCS-${{ matrix.tags }}-repo-names
-        if-no-files-found: error
-        path: ~/repo-list-raw.txt
-        retention-days: 1
-
-  merge-repo-name-list:
-    name: Merge all repo names in marix
-    needs: [ get-repo-list ]
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-
-    - name: Download matrix artifact
-      uses: actions/download-artifact@v3
-      with:
-        path: downloaded_artifacts
-  
-    - name: Merge all repo names
-      id: merge-repo-names
-      run: |
-        echo "=======repo url list========"
-        cat downloaded_artifacts/*/* | sort -f | uniq > ~/repo-url-list.txt
-        cat ~/repo-url-list.txt
-        echo "=======repo list========"
-        cat ~/repo-url-list.txt | sort -f > ~/repo-list.txt
-        cat  ~/repo-list.txt
-        echo "=======repo list json========"\
-        chmod a+x merge-to-json.sh
-        merge-to-json.sh ~/repo-list.txt
-        cat  ~/merge.json
-        echo "repo-list=$(cat ~/merge.json)" >> $GITHUB_OUTPUT
-    
-    outputs:
-      repo-list: ${{ steps.merge-repo-names.outputs.repo-list }}
 
   # create-gitee-repo:
   #   name: Create repo on Gitee
