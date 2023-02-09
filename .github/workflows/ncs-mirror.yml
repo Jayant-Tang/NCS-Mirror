@@ -97,8 +97,8 @@ jobs:
 
     - name: Merge repo url list
       run: |
-        cat ~/repo-list-raw.txt | sort -f | uniq > ~/repo-list.tx
-        cat ~/repo-list.tx
+        cat ~/repo-list-raw.txt | sort -f | uniq > ~/repo-list.txt
+        cat ~/repo-list.txt
         echo "==================="
         chmod a+x merge-to-json.sh
         ./merge-to-json.sh ~/repo-list.txt
