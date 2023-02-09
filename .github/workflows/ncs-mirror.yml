@@ -78,7 +78,7 @@ jobs:
 
     outputs:
       tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
-      tags-hash: ${{ steps.process-nrf-tags.outputs.ags-hash }}
+      tags-hash: ${{ steps.process-nrf-tags.outputs.tags-hash }}
       ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
 
 
