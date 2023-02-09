@@ -106,14 +106,14 @@ jobs:
         sudo apt-get install -y jq
       
     - name: Restore the NCS
-      id: cache-primes
+      id: cache-primes-2
       uses: actions/cache/restore@v3
       with:
         key: ${{ runner.OS }}-NCS-cache-${{ needs.get-list.outputs.tags-hash }}
         path: ./ncs
 
     - name: Get the NCS
-      if: steps.cache-primes.outputs.cache-hit != 'true'
+      if: steps.cache-primes-2.outputs.cache-hit != 'true'
       run: |
         mkdir ncs
         cd ncs
