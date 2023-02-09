@@ -39,6 +39,7 @@ jobs:
         git remote add origin https://github.com/nrfconnect/sdk-nrf.git
         git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" | jq -R . | jq -s -c > ~/all-tags.json
         git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" > ~/all-tags.txt
+        cat ~/all-tags.txt
         echo "tags-list=$(cat ~/all-tags.json)" >> $GITHUB_OUTPUT
 
     # if there is no new release version, use the NCS in cache
@@ -57,8 +58,13 @@ jobs:
         mkdir ncs 
         cd ncs
         west init -m https://github.com/nrfconnect/sdk-nrf --mr main
-        west update
-        west forall -c "git fetch --all"
+        for version in ~/all-tags.txt; do
+          cd nrf
+          git checkout $version
+          west update
+          west forall -c "git fetch --all"
+          cd ..
+        done
         echo "ncs-updated=true" >> $GITHUB_OUTPUT
     
     - name: Cache the NCS
