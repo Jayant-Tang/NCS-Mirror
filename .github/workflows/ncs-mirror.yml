@@ -103,7 +103,7 @@ jobs:
         chmod a+x merge-to-json.sh
         ./merge-to-json.sh ~/repo-list.txt
         cat ~/merge.json
-        echo "repo-list-json=$(cat ~/merge.json)" >> $GITHUB_OUTPUT
+        echo "repo-list-json=$(cat ~/merge.json | jq -c)" >> $GITHUB_OUTPUT
 
     - uses: actions/upload-artifact@v3
       with:
