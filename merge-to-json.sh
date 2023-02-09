@@ -4,7 +4,7 @@ input_file=$1
 
 cat "$input_file" | while read line; do
   user=$(echo $line | sed 's#https://github.com/\(.*\)/\(.*\)#\1#')
-  repo=$(echo $line | sed 's#https://github.com/\(.*\)/\(.*\)#\2#') | sed 's/\.git$//'`
+  repo=$(echo $line | sed 's#https://github.com/\(.*\)/\(.*\)#\2#') | sed 's/\.git$//'
   echo "{\"src\":\"$user\",\"repo\":\"$repo\"}"
 done | \
 jq -s add | \

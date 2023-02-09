@@ -1,4 +1,5 @@
-#!/bin/sh -v
+#!/bin/bash
+
 if [ ! -d .git ]; then
   echo "Error: Not a Git repository."
   exit 1

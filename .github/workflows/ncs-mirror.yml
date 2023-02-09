@@ -93,7 +93,7 @@ jobs:
           west update
           west forall -c "$(pwd)/../get-all-repos.sh"  
         done
-        cat ~/repo-list-raw.txt
+        
 
     - name: Merge repo url list
       run: |
