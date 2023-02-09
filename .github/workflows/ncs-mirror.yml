@@ -62,7 +62,6 @@ jobs:
           cd nrf
           git checkout $version
           west update
-          west forall -c "git fetch --all"
           cd ..
         done
         echo "ncs-updated=true" >> $GITHUB_OUTPUT
