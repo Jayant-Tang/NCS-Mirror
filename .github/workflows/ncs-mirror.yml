@@ -15,7 +15,7 @@ env:
 jobs:
 
   get-list:
-    name: Get all release tags in sdk-nrf
+    name: Get all release tags in sdk-nrf, and a URL list of all the repos in every single release version of NCS.
     runs-on: ubuntu-latest
     
     steps:
