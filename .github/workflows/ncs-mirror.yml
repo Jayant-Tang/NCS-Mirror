@@ -105,6 +105,11 @@ jobs:
         cat ~/merge.json
         echo "repo-list-json=$(cat ~/merge.json)" >> $GITHUB_OUTPUT
 
+    - uses: actions/upload-artifact@v3
+      with:
+        name: all-repos.json
+        path: ~/merge.json
+
     outputs:
       tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
       tags-hash: ${{ steps.process-nrf-tags.outputs.tags-hash }}
