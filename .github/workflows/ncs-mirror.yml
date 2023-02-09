@@ -58,6 +58,7 @@ jobs:
         cd ncs
         west init -m https://github.com/nrfconnect/sdk-nrf --mr main
         west update
+        west forall -c "git fetch --all"
         echo "ncs-updated=true" >> $GITHUB_OUTPUT
     
     - name: Cache the NCS
@@ -81,6 +82,9 @@ jobs:
         tags: ${{ fromJson(needs.get-list.outputs.tags-list) }}
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
     - name: Use Python version ${{ env.PYTHON_VER }}
       uses: actions/setup-python@v4
       with:
@@ -113,9 +117,10 @@ jobs:
         cd ncs/nrf
         git checkout ${{ matrix.tags }}
         west update
-        west forall -c "git remote -v >> ~/repo-list-raw.txt"
-        echo "=======repo list========"
-        cat ~/repo-list-raw.txt
+        cd ../
+        chmod a+x ../get-all-repos.sh
+        cd ncs
+        west forall -c "$(pwd)/../get-all-repos.sh"
 
     - name: Upload the  repos name in NCS ${{ matrix.tags }}
       uses: actions/upload-artifact@v3
@@ -125,12 +130,14 @@ jobs:
         path: ~/repo-list-raw.txt
         retention-days: 1
 
-
   merge-repo-name-list:
     name: Merge all repo names in marix
     needs: [ get-repo-list ]
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
     - name: Download matrix artifact
       uses: actions/download-artifact@v3
       with:
@@ -140,119 +147,120 @@ jobs:
       id: merge-repo-names
       run: |
         echo "=======repo url list========"
-        cat downloaded_artifacts/*/* | awk '{print $2}' | sort -f | uniq > ~/repo-url-list.txt
+        cat downloaded_artifacts/*/* | sort -f | uniq > ~/repo-url-list.txt
         cat ~/repo-url-list.txt
         echo "=======repo list========"
-        cat ~/repo-url-list.txt |sed -e 's#^https://github.com/.\+/##' | sed -e 's#[.]git##' | sort -f > ~/repo-list.txt
+        cat ~/repo-url-list.txt | sort -f > ~/repo-list.txt
         cat  ~/repo-list.txt
-        echo "=======repo list json========"
-        cat  ~/repo-list.txt | uniq | jq -R . | jq -s -c > ~/repo-list.json
-        cat  ~/repo-list.json
-        echo "repo-list=$(cat cat  ~/repo-list.json)" >> $GITHUB_OUTPUT
+        echo "=======repo list json========"\
+        chmod a+x merge-to-json.sh
+        merge-to-json.sh ~/repo-list.txt
+        cat  ~/merge.json
+        echo "repo-list=$(cat ~/merge.json)" >> $GITHUB_OUTPUT
     
     outputs:
       repo-list: ${{ steps.merge-repo-names.outputs.repo-list }}
 
-  create-gitee-repo:
-    name: Create repo on Gitee
-    needs: [ merge-repo-name-list, get-list ]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        repo-name: ${{ fromJson(needs.merge-repo-name-list.outputs.repo-list) }}
+  # create-gitee-repo:
+  #   name: Create repo on Gitee
+  #   needs: [ merge-repo-name-list, get-list ]
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       repo-name: ${{ fromJson(needs.merge-repo-name-list.outputs.repo-list) }}
 
-    steps:
-    - name: use gitee REST API to create remote Repos
-      if: needs.get-list.outputs.ncs-updated == 'true'
-      run: |
-        curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
+  #   steps:
+  #   - name: use gitee REST API to create remote Repos
+  #     if: needs.get-list.outputs.ncs-updated == 'true'
+  #     run: |
+  #       curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/user/repos' -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"${{ matrix.repo-name }}","has_issues":"false","has_wiki":"false","can_comment":"false","path":"${{ matrix.repo-name }}","private":"false"}'
   
 
-  push-to-gitee:
-    name: Push repos to gitee
-    needs: [ create-gitee-repo, get-list ]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        tags: ${{ fromJson(needs.get-list.outputs.tags-list) }}
+  # push-to-gitee:
+  #   name: Push repos to gitee
+  #   needs: [ create-gitee-repo, get-list ]
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       tags: ${{ fromJson(needs.get-list.outputs.tags-list) }}
     
-    steps:
-    - name: Use Python version ${{ env.PYTHON_VER }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VER }}
+  #   steps:
+  #   - name: Use Python version ${{ env.PYTHON_VER }}
+  #     uses: actions/setup-python@v4
+  #     with:
+  #       python-version: ${{ env.PYTHON_VER }}
     
-    - run: |
-        pip3 install --user west
-        export PATH=~/.local/bin:"$PATH"
+  #   - run: |
+  #       pip3 install --user west
+  #       export PATH=~/.local/bin:"$PATH"
 
-        sudo apt-get install -y jq
+  #       sudo apt-get install -y jq
 
-        sudo timedatectl set-timezone "Asia/Shanghai"
-        mkdir -p ~/.ssh/
-        echo "${{ env.GITEE_PRI }}" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        echo "Host gitee.com" >> ~/.ssh/config
-        echo "    HostName gitee.com" >> ~/.ssh/config
-        echo "    User git" >> ~/.ssh/config
-        echo "    IdentityFile ~/.ssh/id_ed25519" >> ~/.ssh/config
-        echo "    IdentitiesOnly yes" >> ~/.ssh/config
-        ssh-keyscan gitee.com >> ~/.ssh/known_hosts
-        git config --global user.name $GIT_USER
-        git config --global user.email $GIT_EMAIL
+  #       sudo timedatectl set-timezone "Asia/Shanghai"
+  #       mkdir -p ~/.ssh/
+  #       echo "${{ env.GITEE_PRI }}" > ~/.ssh/id_ed25519
+  #       chmod 600 ~/.ssh/id_ed25519
+  #       echo "Host gitee.com" >> ~/.ssh/config
+  #       echo "    HostName gitee.com" >> ~/.ssh/config
+  #       echo "    User git" >> ~/.ssh/config
+  #       echo "    IdentityFile ~/.ssh/id_ed25519" >> ~/.ssh/config
+  #       echo "    IdentitiesOnly yes" >> ~/.ssh/config
+  #       ssh-keyscan gitee.com >> ~/.ssh/known_hosts
+  #       git config --global user.name $GIT_USER
+  #       git config --global user.email $GIT_EMAIL
         
 
 
-    # get all tags of release version, convert them to json array
-    - name: Get all release tags in sdk-nrf
-      run: |
-        mkdir -p sdk-nrf && cd sdk-nrf
-        git init
-        git remote add origin https://github.com/nrfconnect/sdk-nrf.git
-        git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" | jq -R . | jq -s -c > ~/all-tags.json
+  #   # get all tags of release version, convert them to json array
+  #   - name: Get all release tags in sdk-nrf
+  #     run: |
+  #       mkdir -p sdk-nrf && cd sdk-nrf
+  #       git init
+  #       git remote add origin https://github.com/nrfconnect/sdk-nrf.git
+  #       git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" | jq -R . | jq -s -c > ~/all-tags.json
 
-    # if there is no new release version, use the NCS in cache
-    - name: Restore the NCS
-      id: cache-primes
-      uses: actions/cache/restore@v3
-      with:
-        key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('~/all-tags.json') }}
-        path: ./ncs
+  #   # if there is no new release version, use the NCS in cache
+  #   - name: Restore the NCS
+  #     id: cache-primes
+  #     uses: actions/cache/restore@v3
+  #     with:
+  #       key: ${{ runner.OS }}-NCS-cache-${{ hashFiles('~/all-tags.json') }}
+  #       path: ./ncs
 
-    # if there is new release version, the cache key will change. Fetch the newest NCS.
-    - name: Get the NCS
-      if: steps.cache-primes.outputs.cache-hit != 'true'
-      run: |
-        mkdir ncs
-        cd ncs
-        west init -m https://github.com/nrfconnect/sdk-nrf --mr main
-        west update
+  #   # if there is new release version, the cache key will change. Fetch the newest NCS.
+  #   - name: Get the NCS
+  #     if: steps.cache-primes.outputs.cache-hit != 'true'
+  #     run: |
+  #       mkdir ncs
+  #       cd ncs
+  #       west init -m https://github.com/nrfconnect/sdk-nrf --mr main
+  #       west update
 
-    - name: push all repos
-      run: |
-        cd ncs/nrf
-        echo "Now in: $(pwd)"
-        git checkout ${{ matrix.tags }}
-        west update
-        cd ..
-        echo "===="
-        echo "Now in: $(pwd)"
+  #   - name: push all repos
+  #     run: |
+  #       cd ncs/nrf
+  #       echo "Now in: $(pwd)"
+  #       git checkout ${{ matrix.tags }}
+  #       west update
+  #       cd ..
+  #       echo "===="
+  #       echo "Now in: $(pwd)"
 
-        echo "#!/bin/bash -v" > push-to-gitee.sh
-        echo "name=\$(git remote -v | awk '{print \$2}' | grep -E '^https' | uniq | sed -e 's#^https://github.com/.\+/##')" >> push-to-gitee.sh
-        echo "git remote add gitee git@gitee.com:${{ env.GITEE_USER }}/\$name" >>  push-to-gitee.sh
-        echo "git remote -v" >>  push-to-gitee.sh
-        echo "git push gitee HEAD:refs/tags/NCS-${{ matrix.tags }}"  >>  push-to-gitee.sh
-        echo "git checkout `git rev-list --max-parents=0 HEAD | tail -n 1`"  >>  push-to-gitee.sh
-        echo "git checkout -b init"  >>  push-to-gitee.sh
-        echo "git push gitee HEAD:refs/heads/init"  >>  push-to-gitee.sh
+  #       echo "#!/bin/bash -v" > push-to-gitee.sh
+  #       echo "name=\$(git remote -v | awk '{print \$2}' | grep -E '^https' | uniq | sed -e 's#^https://github.com/.\+/##')" >> push-to-gitee.sh
+  #       echo "git remote add gitee git@gitee.com:${{ env.GITEE_USER }}/\$name" >>  push-to-gitee.sh
+  #       echo "git remote -v" >>  push-to-gitee.sh
+  #       echo "git push gitee HEAD:refs/tags/NCS-${{ matrix.tags }}"  >>  push-to-gitee.sh
+  #       echo "git checkout `git rev-list --max-parents=0 HEAD | tail -n 1`"  >>  push-to-gitee.sh
+  #       echo "git checkout -b init"  >>  push-to-gitee.sh
+  #       echo "git push gitee HEAD:refs/heads/init"  >>  push-to-gitee.sh
 
-        chmod a+x push-to-gitee.sh
+  #       chmod a+x push-to-gitee.sh
 
-        echo "==== will excute script below ===="
-        cat push-to-gitee.sh
-        echo "=================================="
+  #       echo "==== will excute script below ===="
+  #       cat push-to-gitee.sh
+  #       echo "=================================="
 
-        west forall -c "$(pwd)/push-to-gitee.sh"
+  #       west forall -c "$(pwd)/push-to-gitee.sh"
 
         
