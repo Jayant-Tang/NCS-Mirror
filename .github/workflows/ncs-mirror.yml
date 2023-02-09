@@ -43,7 +43,7 @@ jobs:
         cat ../all-tags.json
         echo "${{ hashFiles('../all-tags.json') }}"
         echo "tags-list=$(cat ../all-tags.json)" >> $GITHUB_OUTPUT
-        echo "tags-hash=${{ hashFiles('../all-tags.json') }}" >> $GITHUB_OUTPUT
+        echo "tags-hash=${{ hashFiles('all-tags.json') }}" >> $GITHUB_OUTPUT
 
     # if there is no new release version, use the NCS in cache
     - name: Restore the NCS Cache
