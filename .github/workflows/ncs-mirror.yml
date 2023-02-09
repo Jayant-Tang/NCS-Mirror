@@ -58,7 +58,7 @@ jobs:
         mkdir ncs 
         cd ncs
         west init -m https://github.com/nrfconnect/sdk-nrf --mr main
-        for version in ~/all-tags.txt; do
+        for version in $(cat ~/all-tags.txt); do
           cd nrf
           git checkout $version
           west update
