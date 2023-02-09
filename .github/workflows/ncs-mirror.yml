@@ -43,7 +43,6 @@ jobs:
         cat ../all-tags.json
         echo "${{ hashFiles('../all-tags.json') }}"
         echo "tags-list=$(cat ../all-tags.json)" >> $GITHUB_OUTPUT
-        echo "tags-hash=${{ hashFiles('all-tags.json') }}" >> $GITHUB_OUTPUT
 
     # if there is no new release version, use the NCS in cache
     - name: Restore the NCS Cache
@@ -68,6 +67,7 @@ jobs:
           cd ..
         done
         echo "ncs-updated=true" >> $GITHUB_OUTPUT
+        echo "tags-hash=${{ hashFiles('all-tags.json') }}" >> $GITHUB_OUTPUT
     
     - name: Cache the NCS
       if: steps.cache-primes.outputs.cache-hit != 'true'
@@ -79,7 +79,7 @@ jobs:
     outputs:
       tags-list: ${{ steps.process-nrf-tags.outputs.tags-list }}
       ncs-updated: ${{ steps.update-ncs-cache.outputs.ncs-updated }}
-      tags-hash: ${{ steps.process-nrf-tags.outputs.ags-hash }}
+      tags-hash: ${{ steps.update-ncs-cache.outputs.ags-hash }}
 
 
   get-repo-list:
