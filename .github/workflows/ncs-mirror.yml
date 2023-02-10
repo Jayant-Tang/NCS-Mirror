@@ -108,7 +108,10 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: repo
-        path: [~/repo-list-raw.txt, ~/repo-list.txt, cat ~/merge.json]
+        path: |
+          ~/repo-list-raw.txt
+          ~/repo-list.txt
+          ~/merge.json
         retention-days: 5
 
     # - name: Create Repo on Gitee
