@@ -108,25 +108,27 @@ jobs:
     - name: Create Repo on Gitee
       #if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
-        cat ~/merge.json | jq -s | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" | while read line; do
+        cat ~/merge.json | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" | while read line; do
           echo "========== create $line =========="
           curl -X POST --header 'Content-Type: application/json;charset=UTF-8' \
           'https://gitee.com/api/v5/user/repos' \
           -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","has_issues":"false","has_wiki":"false","can_comment":"false","path":"'$line'","private":"false"}'
         done
     
-    - name: Sync to Gitee
+    - name: Sync latest version to Gitee
       run: |
         chmod a+x push-to-gitee.sh
         cd ncs
-        for version in $(cat ../all-tags.txt); do
-          cd nrf
-          git checkout $version
-          cd ..
-          west update
-          west forall -c "$(pwd)/../push-to-gitee.sh $version ${{ env.GITEE_USER }}"
-          west forall -c "git submodule foreach --recursive \"$(pwd)/../push-to-gitee.sh $version ${{ env.GITEE_USER }}\""
-        done
+        
+        latest_version=$( cat../all-tags.txt | sort | tail -n 1)
+        echo $latest_version
+
+        cd nrf
+        git checkout $latest_version
+        cd ..
+        west update
+        west forall -c "$(pwd)/../push-to-gitee.sh $latest_version ${{ env.GITEE_USER }}"
+        west forall -c "git submodule foreach --recursive \"$(pwd)/../push-to-gitee.sh $latest_version ${{ env.GITEE_USER }}\""
 
     # - uses: actions/upload-artifact@v3
     #   with:

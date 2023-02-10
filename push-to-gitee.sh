@@ -4,7 +4,7 @@ gitee_user=$2
 
 
 
-name=$(git remote -v | awk '{print \$2}' | grep -E '^https' | uniq | sed -e "s#^https://.\+\.com/\(.*\)/\(.*\)#\2#")
+name=$(git remote -v | awk '{print $2}' | grep -E '^https' | uniq | sed -e "s#^https://.\+\.com/\(.*\)/\(.*\)#\2#")
 echo $name
 git remote add gitee git@gitee.com:$gitee_user/$name
 git remote -v
