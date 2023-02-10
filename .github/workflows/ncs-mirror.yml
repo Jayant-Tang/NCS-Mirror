@@ -63,8 +63,11 @@ jobs:
       run: |
         mkdir ncs 
         cd ncs
-        west init -m https://github.com/nrfconnect/sdk-nrf --mr main
+        latest_version=$( cat ../all-tags.txt | sort | tail -n 1)
+        echo $latest_version
+        west init -m https://github.com/nrfconnect/sdk-nrf --mr $latest_version
         for version in $(cat ../all-tags.txt); do
+          echo "\n========== version:$version =========="
           cd nrf
           git checkout $version
           west update
@@ -87,9 +90,9 @@ jobs:
 
         for version in $(cat ../all-tags.txt); do
           cd nrf
+          echo "\n========== version:$version =========="
           git checkout $version
           cd ..
-
           west update
           west forall -c "$(pwd)/../get-all-repos.sh"  
         done
