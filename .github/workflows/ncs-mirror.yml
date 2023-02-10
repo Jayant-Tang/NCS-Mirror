@@ -127,8 +127,8 @@ jobs:
         git checkout $latest_version
         cd ..
         west update
-        west forall -c "$(pwd)/../push-to-gitee.sh $latest_version ${{ env.GITEE_USER }}"
-        west forall -c "git submodule foreach --recursive \"$(pwd)/../push-to-gitee.sh $latest_version ${{ env.GITEE_USER }}\""
+        west forall -c "$(pwd)/../push-to-gitee.sh $latest_version $GITEE_USER"
+        west forall -c "git submodule foreach --recursive \"$(pwd)/../push-to-gitee.sh $latest_version $GITEE_USER\""
 
     # - uses: actions/upload-artifact@v3
     #   with:
