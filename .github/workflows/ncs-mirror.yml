@@ -135,7 +135,8 @@ jobs:
           curl -X POST \
           --header 'Content-Type: application/json;charset=UTF-8' \
           'https://gitee.com/api/v5/user/repos' \
-          -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"$line","description":"这是一个镜像仓库，定时同步更新。详情请参考${{ github.server_url }}/${{ github.repository }}","has_issues":"false","has_wiki":"false","can_comment":"false","auto_init":"false","path":"'$line'","private":"true"}'
+          -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","description":"这是一个镜像仓库，定时同步更新。详情请参考${{ github.server_url }}/${{ github.repository }}","has_issues":"false","has_wiki":"false","can_comment":"false","auto_init":"false","path":"'$line'","private":"true"}'
+        
         done
     
     # - name: Prepare Private Keys
