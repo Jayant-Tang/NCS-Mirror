@@ -69,7 +69,7 @@ jobs:
         echo $latest_version
         west init -m ${{ env.NCS_MANIFEST }} --mr $latest_version
         for version in $(cat ../all-tags.txt); do
-          echo "\n========== version:$version =========="
+          echo "========== version:$version =========="
           cd nrf
           git checkout $version
           west update
@@ -87,7 +87,6 @@ jobs:
     - name:  Get all repo's URL
       id: process-west-list
       run: |
-        chmod a+x get-all-repos.sh
         cd ncs
 
         echo "${{ env.NCS_MANIFEST }}" > ~/repo-list-raw.txt
@@ -112,18 +111,9 @@ jobs:
         ./merge-to-json.sh ~/repo-list.txt
         cat ~/merge.json
         echo "repo-list-json=$(cat ~/merge.json | jq -c)" >> $GITHUB_OUTPUT
-    
-    - uses: actions/upload-artifact@v3
-      with:
-        name: repo
-        path: |
-          ~/repo-list-raw.txt
-          ~/repo-list.txt
-          ~/merge.json
-        retention-days: 5
 
     - name: Create Repo on Gitee
-      #if: steps.cache-primes.outputs.cache-hit != 'true'
+      if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
         cat ~/merge.json | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" | while read line; do
           echo ""
@@ -132,44 +122,46 @@ jobs:
           
           # curl -X DELETE --header 'Content-Type: application/json;charset=UTF-8' "https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/$line?access_token=${{ env.GITEE_TOKEN }}"
           
-          curl --connect-timeout 10 --max-time 10 --retry 3 -X POST \
+          curl --connect-timeout 15 --max-time 30 --retry 3 --retry-delay 2 -X POST \
           --header 'Content-Type: application/json;charset=UTF-8' \
           'https://gitee.com/api/v5/user/repos' \
           -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","description":"这是一个镜像仓库，定时同步更新。详情请参考${{ github.server_url }}/${{ github.repository }}","has_issues":"false","has_wiki":"false","can_comment":"false","auto_init":"false","path":"'$line'","private":"true"}'
 
-
           sleep 2
         done
     
-    # - name: Prepare Private Keys
-    #   run: |
-    #     sudo timedatectl set-timezone "Asia/Shanghai"
-    #     mkdir -p ~/.ssh/
-    #     echo "${{ env.GITEE_PRI }}" > ~/.ssh/id_ed25519
-    #     chmod 600 ~/.ssh/id_ed25519
-    #     echo "Host gitee.com" >> ~/.ssh/config
-    #     echo "    HostName gitee.com" >> ~/.ssh/config
-    #     echo "    User git" >> ~/.ssh/config
-    #     echo "    IdentityFile ~/.ssh/id_ed25519" >> ~/.ssh/config
-    #     echo "    IdentitiesOnly yes" >> ~/.ssh/config
-    #     ssh-keyscan gitee.com >> ~/.ssh/known_hosts
-    #     git config --global user.name $GIT_USER
-    #     git config --global user.email $GIT_EMAIL
+    - name: Prepare Private Keys
+      run: |
+        sudo timedatectl set-timezone "Asia/Shanghai"
+        mkdir -p ~/.ssh/
+        echo "${{ env.GITEE_PRI }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        echo "Host gitee.com" >> ~/.ssh/config
+        echo "    HostName gitee.com" >> ~/.ssh/config
+        echo "    User git" >> ~/.ssh/config
+        echo "    IdentityFile ~/.ssh/id_ed25519" >> ~/.ssh/config
+        echo "    IdentitiesOnly yes" >> ~/.ssh/config
+        ssh-keyscan gitee.com >> ~/.ssh/known_hosts
+        git config --global user.name $GIT_USER
+        git config --global user.email $GIT_EMAIL
 
-    # - name: Sync latest version to Gitee
-    #   run: |
-    #     chmod a+x push-to-gitee.sh
-    #     cd ncs
-        
-    #     latest_version=$( cat ../all-tags.txt | sort | tail -n 1)
-    #     echo $latest_version
+    - name: Sync every version to Gitee
+      run: |
+        chmod a+x push-to-gitee.sh
+        cd ncs
 
-    #     cd nrf
-    #     git checkout $latest_version
-    #     cd ..
-    #     west update
-    #     west forall -c "$(pwd)/../push-to-gitee.sh $latest_version $GITEE_USER"
-    #     west forall -c "git submodule foreach --recursive \"$(pwd)/../push-to-gitee.sh $latest_version $GITEE_USER\""
+        for version in $(cat ../all-tags.txt); do
+          echo "========== version:$version =========="
+          
+          cd nrf
+          git checkout $version
+          cd ..
+
+          west update
+          west forall -c "$(pwd)/../push-to-gitee.sh $version $GITEE_USER"
+          west forall -c "git submodule foreach --recursive \"$(pwd)/../push-to-gitee.sh $version $GITEE_USER\""
+
+        done
 
     # - uses: actions/upload-artifact@v3
     #   with:
