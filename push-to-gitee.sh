@@ -1,6 +1,6 @@
 #!/bin/bash -v
 version=$1
-gitee_user=$2
+gitee_user="$2"
 
 
 
