@@ -120,7 +120,7 @@ jobs:
         chmod a+x push-to-gitee.sh
         cd ncs
         
-        latest_version=$( cat../all-tags.txt | sort | tail -n 1)
+        latest_version=$( cat ../all-tags.txt | sort | tail -n 1)
         echo $latest_version
 
         cd nrf

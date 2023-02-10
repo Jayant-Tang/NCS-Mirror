@@ -2,8 +2,8 @@
 version=$1
 gitee_user=$2
 
+echo $1
 echo $2
-echo $gitee_user
 
 
 
