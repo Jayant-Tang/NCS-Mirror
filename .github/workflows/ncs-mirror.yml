@@ -11,11 +11,12 @@ env:
   GITEE_PRI: ${{ secrets.GITEE_SSH_PRV }}
   GIT_USER: Jayant.Tang
   GIT_EMAIL: jayant.tang@nordicsemi.no
+  NCS_MANIFEST: https://github.com/nrfconnect/sdk-nrf.git
 
 jobs:
 
   get-list:
-    name: Get all release tags in sdk-nrf, and a URL list of all the repos in every single release version of NCS.
+    name: Sync all NCS repos to Gitee
     runs-on: ubuntu-latest
     
     steps:
@@ -39,7 +40,7 @@ jobs:
         mkdir -p sdk-nrf
         cd sdk-nrf
         git init
-        git remote add origin https://github.com/nrfconnect/sdk-nrf.git
+        git remote add origin ${{ env.NCS_MANIFEST }}
         git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" | jq -R . | jq -s -c > ../all-tags.json
         git ls-remote --tags origin | awk '{print $2}' | sed -e "s#^refs/tags/##" | grep -E "^v[1-9]+\.[0-9]+\.[0-9]+$" > ../all-tags.txt
         cat ../all-tags.txt
@@ -57,7 +58,7 @@ jobs:
         path: ./ncs
 
     # if there is a new release version, the cache key will change. Fetch the newest NCS.
-    - name: Get the NCS and Save
+    - name: Get the latest NCS and Save
       id: update-ncs-cache
       if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
@@ -65,7 +66,7 @@ jobs:
         cd ncs
         latest_version=$( cat ../all-tags.txt | sort | tail -n 1)
         echo $latest_version
-        west init -m https://github.com/nrfconnect/sdk-nrf --mr $latest_version
+        west init -m ${{ env.NCS_MANIFEST }} --mr $latest_version
         for version in $(cat ../all-tags.txt); do
           echo "\n========== version:$version =========="
           cd nrf
@@ -88,13 +89,16 @@ jobs:
         chmod a+x get-all-repos.sh
         cd ncs
 
+        echo "${{ env.NCS_MANIFEST }}" > ~/repo-list-raw.txt
+
         for version in $(cat ../all-tags.txt); do
           cd nrf
           echo "\n========== version:$version =========="
           git checkout $version
           cd ..
           west update
-          west forall -c "$(pwd)/../get-all-repos.sh"  
+          west list -f "{url}" | grep -E "^https://" >> ~/repo-list-raw.txt
+          west forall -c "git submodule foreach --recursive \"git remote -v | awk '{print \\\$2}' | uniq >> ~/repo-list-raw.txt\"" 
         done
         
 
@@ -124,9 +128,21 @@ jobs:
           echo "\n========== create $line =========="
           curl -X DELETE --header 'Content-Type: application/json;charset=UTF-8' "https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/$line?access_token=${{ env.GITEE_TOKEN }}"
 
-          # curl -X POST --header 'Content-Type: application/json;charset=UTF-8' \
-          # 'https://gitee.com/api/v5/user/repos' \
-          # -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","has_issues":"false","has_wiki":"false","can_comment":"false","path":"'$line'","private":"false"}'
+
+          curl -X POST \
+          --header 'Content-Type: application/json;charset=UTF-8' \
+          'https://gitee.com/api/v5/user/repos'
+          -d '{\
+            "access_token":"${{ env.GITEE_TOKEN }}",\
+            "name":"$line","description":"这是一个镜像仓库，定时同步更新。详情请参考原始地址 ${{ github.repositoryUrl }}",
+            "homepage":"${{ github.repositoryUrl }}",\
+            "has_issues":"false",\
+            "has_wiki":"false",\
+            "can_comment":"false",\
+            "auto_init":"false",\
+            "path":"$line",\
+            "private":"true"\
+          }'
         done
     
     # - name: Prepare Private Keys
