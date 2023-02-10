@@ -115,6 +115,21 @@ jobs:
           -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","has_issues":"false","has_wiki":"false","can_comment":"false","path":"'$line'","private":"false"}'
         done
     
+    - name: Prepare Private Keys
+      run: |
+        sudo timedatectl set-timezone "Asia/Shanghai"
+        mkdir -p ~/.ssh/
+        echo "${{ env.GITEE_PRI }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        echo "Host gitee.com" >> ~/.ssh/config
+        echo "    HostName gitee.com" >> ~/.ssh/config
+        echo "    User git" >> ~/.ssh/config
+        echo "    IdentityFile ~/.ssh/id_ed25519" >> ~/.ssh/config
+        echo "    IdentitiesOnly yes" >> ~/.ssh/config
+        ssh-keyscan gitee.com >> ~/.ssh/known_hosts
+        git config --global user.name $GIT_USER
+        git config --global user.email $GIT_EMAIL
+
     - name: Sync latest version to Gitee
       run: |
         chmod a+x push-to-gitee.sh
