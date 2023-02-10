@@ -108,7 +108,7 @@ jobs:
     - name: Create Repo on Gitee
       #if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
-        cat "~/merge.json" | jq -s | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" | while read line; do
+        cat ~/merge.json | jq -s | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" | while read line; do
           echo "========== create $line =========="
           curl -X POST --header 'Content-Type: application/json;charset=UTF-8' \
           'https://gitee.com/api/v5/user/repos' \
