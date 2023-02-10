@@ -93,7 +93,7 @@ jobs:
 
         for version in $(cat ../all-tags.txt); do
           cd nrf
-          echo "\n========== version:$version =========="
+          echo "========== version:$version =========="
           git checkout $version
           cd ..
           west update
@@ -125,16 +125,17 @@ jobs:
       #if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
         cat ~/merge.json | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" | while read line; do
-          echo "\n========== create $line =========="
+          echo ""
+          echo "========== create $line =========="
           curl -X DELETE --header 'Content-Type: application/json;charset=UTF-8' "https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/$line?access_token=${{ env.GITEE_TOKEN }}"
 
 
           curl -X POST \
           --header 'Content-Type: application/json;charset=UTF-8' \
-          'https://gitee.com/api/v5/user/repos'
+          'https://gitee.com/api/v5/user/repos' \
           -d '{\
             "access_token":"${{ env.GITEE_TOKEN }}",\
-            "name":"$line","description":"这是一个镜像仓库，定时同步更新。详情请参考原始地址 ${{ github.repositoryUrl }}",
+            "name":"$line","description":"这是一个镜像仓库，定时同步更新。详情请参考原始地址 ${{ github.repositoryUrl }}", \
             "homepage":"${{ github.repositoryUrl }}",\
             "has_issues":"false",\
             "has_wiki":"false",\
