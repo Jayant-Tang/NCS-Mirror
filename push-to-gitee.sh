@@ -11,7 +11,8 @@ name=$(git remote -v | awk '{print $2}' | grep -E '^https' | uniq | sed -e "s#^h
 echo $name
 git remote add gitee git@gitee.com:$gitee_user/$name
 git remote -v
-git push gitee --all --tags
+git push gitee --all
+git push gitee --tags
 # git push gitee HEAD:refs/tags/NCS-$version
 # git checkout `git rev-list --max-parents=0 HEAD | tail -n 1`
 # git checkout -b init
