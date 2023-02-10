@@ -37,7 +37,7 @@ jobs:
     - name: Get all release tags in sdk-nrf
       id: process-nrf-tags
       run: |
-        echo "${{ github.server_url }}/${{ github.repository }"
+        echo "${{ github.server_url }}/${{ github.repository }}"
         mkdir -p sdk-nrf
         cd sdk-nrf
         git init
