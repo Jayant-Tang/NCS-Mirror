@@ -113,20 +113,23 @@ jobs:
         echo "repo-list-json=$(cat ~/merge.json | jq -c)" >> $GITHUB_OUTPUT
 
     - name: Create Repo on Gitee
-      if: steps.cache-primes.outputs.cache-hit != 'true'
+      #if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
-        cat ~/merge.json | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" | while read line; do
+        cat ~/merge.json | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" \
+        | while read line; do
           echo ""
           echo "========== create $line =========="
           
+          # Delete the repo
+          curl --connect-timeout 15 --max-time 30 --retry 3 \
+          -X DELETE --header 'Content-Type: application/json;charset=UTF-8' "https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/$line?access_token=${{ env.GITEE_TOKEN }}"
           
-          # curl -X DELETE --header 'Content-Type: application/json;charset=UTF-8' "https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/$line?access_token=${{ env.GITEE_TOKEN }}"
-          
+          # Creeate the repo
           curl --connect-timeout 15 --max-time 30 --retry 3 --retry-delay 2 -X POST \
           --header 'Content-Type: application/json;charset=UTF-8' \
           'https://gitee.com/api/v5/user/repos' \
           -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","description":"这是一个镜像仓库，定时同步更新。详情请参考${{ github.server_url }}/${{ github.repository }}","has_issues":"false","has_wiki":"false","can_comment":"false","auto_init":"false","path":"'$line'","private":"true"}'
-
+          
           sleep 2
         done
     
@@ -162,7 +165,13 @@ jobs:
           west forall -c "git submodule foreach --recursive \"$(pwd)/../push-to-gitee.sh $version $GITEE_USER\""
 
         done
-
+        
+        # change repo type to public
+        cat ~/merge.json | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" \
+        | while read line; do
+          curl -X PATCH --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/'$line'' \
+          -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","has_issues":"false","has_wiki":"false","can_comment":"false","private":"false"}'
+        done
     # - uses: actions/upload-artifact@v3
     #   with:
     #     name: all-repos.json
