@@ -113,7 +113,7 @@ jobs:
         echo "repo-list-json=$(cat ~/merge.json | jq -c)" >> $GITHUB_OUTPUT
 
     - name: Create Repo on Gitee
-      #if: steps.cache-primes.outputs.cache-hit != 'true'
+      if: steps.cache-primes.outputs.cache-hit != 'true'
       run: |
         cat ~/merge.json | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" \
         | while read line; do

@@ -2,7 +2,7 @@
 version=$1
 gitee_user=$2
 
-name=$(git remote -v | awk '{print $2}' | grep -E '^https' | uniq | sed -e "s#^https://.\+\.com/\(.*\)/\(.*\)#\2#")
+name=$(git remote -v | awk '{print $2}' | grep -E '^https' | uniq | sed -e "s#^https://.\+\.com/\(.*\)/\(.*\)#\2#" | tail -n 1)
 
 echo "repo-name:{$name}"
 
