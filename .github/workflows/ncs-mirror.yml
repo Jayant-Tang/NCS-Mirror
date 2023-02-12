@@ -98,7 +98,7 @@ jobs:
           cd ..
           west update
           west list -f "{url}" | grep -E "^https://" >> ~/repo-list-raw.txt
-          west forall -c "git submodule foreach --recursive \"git remote -v | awk '{print \\\$2}' | uniq >> ~/repo-list-raw.txt\"" 
+          west forall -c "git submodule foreach --recursive \"git remote -v | awk '{print \\\$2}' | sed 's#\\\\.git##' | uniq >> ~/repo-list-raw.txt\"" 
         done
         
 
@@ -121,8 +121,8 @@ jobs:
           echo "========== create $line =========="
           
           # Delete the repo
-          curl --connect-timeout 15 --max-time 30 --retry 3 \
-          -X DELETE --header 'Content-Type: application/json;charset=UTF-8' "https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/$line?access_token=${{ env.GITEE_TOKEN }}"
+          # curl --connect-timeout 15 --max-time 30 --retry 3 \
+          # -X DELETE --header 'Content-Type: application/json;charset=UTF-8' "https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/$line?access_token=${{ env.GITEE_TOKEN }}"
           
           # Creeate the repo
           curl --connect-timeout 15 --max-time 30 --retry 3 --retry-delay 2 -X POST \
