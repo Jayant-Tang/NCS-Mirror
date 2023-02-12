@@ -13,11 +13,50 @@
 
 ## 如何从Gitee获取NCS？
 
-待补充
+​	举例来说，原本从GitHub获取`v2.2.0`版本的命令为：
 
-## 如何让此项目定时同步NCS到我个人或企业的Gitee账号上？
+```shell
+mkdir ncs
+cd ncs
+west init -m https://github.com/nrfconnect/sdk-nrf --mr v2.2.0
+```
 
-待补充
+​	改为从Gitee镜像上进行下载，分支名变为`NCS-v2.2.0`
+
+```shell
+mkdir ncs
+cd ncs
+west init -m https://gitee.com/jayant97/sdk-nrf --mr NCS-v2.2.0
+```
+
+>**为什么分支的名称改变了？**
+>
+>​	原本的版本是一个tag，指向一个特定的commit。在镜像拷贝到Gitee之后，tag和commit id都不变。但是，我必须修改仓库中的`west.yml`文件，让manifest中记录的其他仓库全部指向Gitee中的镜像仓库。这就必然导致产生新的commit id，于是我新建了`NCS-vX.X.X`分支，在提交了这些修改后，再推送到Gitee。
+
+## 如何让此项目定时同步NCS到其他个人或企业的Gitee账号上？
+
+​	首先，你需要fork此项目，让它成为**你的**GitHub账户上的一个远程仓库。
+
+​	此项目的`.github/workflows/ncs-mirror.yml`是此CI项目的脚本文件。其开头有一些环境变量可供修改：
+
+```yaml
+env:
+  PYTHON_VER: 3.8
+  GITEE_USER: jayant97
+  GITEE_TOKEN: ${{ secrets.GITEE_API_TOKEN }}
+  GITEE_PRI: ${{ secrets.GITEE_SSH_PRV }}
+  GIT_USER: Jayant.Tang
+  GIT_EMAIL: jayant.tang@nordicsemi.no
+  NCS_MANIFEST: https://github.com/nrfconnect/sdk-nrf.git
+```
+
+如果你要修改账户，需要修改以下项目：
+
+- `GITEE_USER`：你的Gitee用户名
+- `GITEE_TOKEN`：需要用此Token来调用Gitee API来执行创建新仓库的操作。这里使用的是Gitee账户设置--- 安全设置 --- 私人令牌 中创建的私人令牌。权限只需要`projects`（查看、创建、更新项目）。
+- `GITEE_PRI`：你的Gitee账户的ssh私钥。与其成对的公钥必须**已经**上传到你的Gitee账户中。你需要确保这个私钥可以ssh访问到你的Gitee远程仓库。
+
+> ​	API Token的`Name`需设置为`GITEE_API_TOKEN`；SSH私钥的`Name`需设置为`GITEE_SSH_PRV`。设置完毕后，Action脚本中就可以访问到这些密钥。GitHub Actions会确保这些密钥一定不会被打印出来。
 
 ## 此项目是如何实现的？
 
@@ -73,7 +112,13 @@ cat ~/repo-list-raw.txt | sort -f | uniq > ~/repo-list.txt
 
 ### 在Gitee上创建空仓库
 
-使用Gitee API来创建仓库，详情参考：[Gitee API 文档](https://gitee.com/api/v5/swagger#/postV5UserRepos)
+​	使用Gitee API来创建仓库，详情参考：[Gitee API 文档](https://gitee.com/api/v5/swagger#/postV5UserRepos)
+```shell
+curl --connect-timeout 15 --max-time 30 --retry 3 --retry-delay 2 -X POST \
+          --header 'Content-Type: application/json;charset=UTF-8' \
+          'https://gitee.com/api/v5/user/repos' \
+          -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","description":"这是一个镜像仓库，定时同步更新。详情请参考${{ github.server_url }}/${{ github.repository }}","has_issues":"false","has_wiki":"false","can_comment":"false","auto_init":"false","path":"'$line'","private":"true"}'
+```
 
 > 备注：
 >
@@ -82,55 +127,68 @@ cat ~/repo-list-raw.txt | sort -f | uniq > ~/repo-list.txt
 
 
 
-### 推送每个仓库的每个版本的Revision到Gitee
+### 修改内容并推送到Gitee
 
-考虑到以下限制：
+这部分内容在脚本`push-to-gitee.sh`中实现。
 
-- push内容要尽可能少，只push必要内容，因此最好单独push每个版本需要用到的revision（tag）
-- 必须要推送分支，而不能只推送标签。否则将被Gitee认定为空仓库，后续无法把仓库修改为公有
-- 各个成员仓库和Submodule的默认分支命名不统一（`master`、`main`和其他），难以准确获取其原始默认分支名
+在所有NCS成员仓库以及Submodule中遍历执行以下操作：
 
-本项目的解决方案为：
+1. 添加远程仓库
+   ```shell
+   git remote add gitee-$version git@gitee.com:$gitee_user/$name
+   ```
 
-- 对于每个版本的每个仓库，在推送到Gitee时，推送到新的`NCS-vx.x.x`分支上。例如，NCS`v2.2.0`版本的所有子仓库的revision，在Gitee上都对应`NCS-v2.2.0`分支。具体来说，就是在每个子仓库中执行：
-  ```shell
-  git push gitee HEAD:refs/heads/NCS-vX.X.X
-  ```
+   > 注意，这里的name：
+   >
+   > - 如果是west成员仓库，则要使用`west list . -f "{url}"`，然后从URL中提取
+   > - 如果是submodule，则要从`git remote -v`中提取
+   >
+   > ​    west成员仓库不能从后者提取。因为west update时，如果本地找得到revision，则不会从远端重新拉取。会出现`git remote -v`和`west list . -f "{url}"`的地址不相同的情况。典型的例如`sdk-zephyr`和` fw-nrfconnect-zephyr`，他们都是zephyr仓库，但是是不同的remote，分别属于2.x版本和1.x版本。
 
-总的命令流程为：
+2. 在每个revision中创建`NCS-$version`分支
+
+   ```shell
+   git checkout -b NCS-$version
+   ```
+
+3. 修改`west.yml`和`.gitmodules`中的地址与Revision，将其重定向到Gitee上镜像仓库的`NCS-$version分支上`，然后commit
+
+   ```shell
+   for file in $(ls -1 | grep "west.yml"); do
+       echo "Modifying the $file"
+       sed -i 's#url-base:.*https://.\+/.\+#url-base: https://gitee.com/'$gitee_user'#' west.yml > /dev/null
+       sed -i 's#revision:.\+#revision: NCS-'$version'#' west.yml > /dev/null
+       git add .
+       git commit -m "modify url of NCS-$version"
+       git diff-tree --cc HEAD
+   done
+   
+   for file in $(ls -1 | grep ".gitmodules"); do
+       echo "Modifying the $file"
+       sed -i 's#url.*=.*https://.\+/.\+/#url = https://gitee.com/'$gitee_user'/#' .gitmodules > /dev/null
+       sed -i  's#branch.*=.*#branch = NCS-'$version'#' .gitmodules > /dev/null
+       git add .
+       git commit -m "modify url of NCS-$version"
+       git diff-tree --cc HEAD
+   done
+   ```
+
+4. 推送
 
 ```shell
-for version in $(cat ../all-tags.txt); do
-
-    cd nrf
-    git checkout $version
-    cd ..
-    west update
-    west forall -c "$(pwd)/../push-to-gitee.sh $version $GITEE_USER"
-    west forall -c "git submodule foreach --recursive \"$(pwd)/../push-to-gitee.sh $version $GITEE_USER\""
-
-done
+git push gitee-$version HEAD:refs/heads/NCS-$versio
 ```
 
-​	其中`push-to-gitee.sh`脚本在本CI项目中，作用是把gitee添加到远程仓库，并推送所有tag。同时，把当前revision推送到`refs/heads/NCS-vX.X.X`分支上。
-
-> 这一步骤会检出每个版本，并执行`west update`，同时还要在每个仓库中递归执行push，非常耗时。
-
-
+> ​	此脚本默认只推送自己生成的`NCS-vX.X.X`分支，从而节约时间。若想把仓库原本的tag全部推送，则需解开脚本中`git push gitee-$version --tags`的注释。
 
 ### 修改仓库权限
 
 ​	由于仓库已经不再是空仓库，因此可以把仓库权限设置为公有，从而使所有人都可以下载的到。同样使用：[Gitee API 文档](https://gitee.com/api/v5/swagger#/patchV5ReposOwnerRepo)
 
-
-
-### 执行“关系的拷贝”
-
-​	除了要把每个仓库同步到Gitee之外，还要把“仓库之间的关系”修改到Gitee上。否则Gitee上仓库的Submodule仍然指向Github或Google等。
-
-​	这就需要把`west.yml`和`.submodules`文件中记录的仓库地址改到Gitee上同步的地址。
-
-
+```shell
+curl --connect-timeout 15 --max-time 30 --retry 3 -X PATCH --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/'$line'' \
+          -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","has_issues":"false","has_wiki":"false","can_comment":"false","private":"false"}'
+```
 
 ### 任务的缓存与加速
 

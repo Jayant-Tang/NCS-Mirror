@@ -169,8 +169,9 @@ jobs:
         # change repo type to public
         cat ~/merge.json | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" \
         | while read line; do
-          curl -X PATCH --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/'$line'' \
+          curl --connect-timeout 15 --max-time 30 --retry 3 -X PATCH --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/'$line'' \
           -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","has_issues":"false","has_wiki":"false","can_comment":"false","private":"false"}'
+          sleep 1
         done
     # - uses: actions/upload-artifact@v3
     #   with:

@@ -30,24 +30,25 @@ git remote -v
 git checkout -b NCS-$version
 
 # change the url in .gitmodules and west
-for file in $(ls -la | grep "west.yml"| awk '{print $9}'); do
+for file in $(ls -1 | grep "west.yml"); do
     echo "Modifying the $file"
-    sed 's#url-base:.*https://.\+/.\+#url-base: https://gitee.com/'$gitee_user'#' west.yml > /dev/null
-    sed 's#revision:.\+#revision: NCS-'$version'#' west.yml > /dev/null
+    sed -i 's#url-base:.*https://.\+/.\+#url-base: https://gitee.com/'$gitee_user'#' west.yml > /dev/null
+    sed -i 's#revision:.\+#revision: NCS-'$version'#' west.yml > /dev/null
+    git add .
+    git commit -m "modify url of NCS-$version"
+    git diff-tree --cc HEAD
 done
 
-for file in $(ls -la | grep ".gitmodules" | awk '{print $9}'); do
-    sed 's#url.*=.*https://.\+/.\+/#url = https://gitee.com/'$gitee_user'/#' .gitmodules > /dev/null
-    sed 's#branch.*=.*#branch = NCS-'$version'#' .gitmodules > /dev/null
+for file in $(ls -1 | grep ".gitmodules"); do
+     echo "Modifying the $file"
+    sed -i 's#url.*=.*https://.\+/.\+/#url = https://gitee.com/'$gitee_user'/#' .gitmodules > /dev/null
+    sed -i 's#branch.*=.*#branch = NCS-'$version'#' .gitmodules > /dev/null
+    git add .
+    git commit -m "modify url of NCS-$version"
+    git diff-tree --cc HEAD
 done
 
-# commit
-git add .
-git commit -m "modify url of NCS-$version"
-git diff-tree --cc HEAD
-
-# push
 git push gitee-$version HEAD:refs/heads/NCS-$version
-#git push gitee --tags
+#git push gitee-$version --tags
 
-sleep 2
+sleep 1
