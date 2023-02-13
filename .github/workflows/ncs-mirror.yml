@@ -155,24 +155,25 @@ jobs:
         chmod a+x push-to-gitee.sh
         cd ncs
 
+        latest_version=$( cat ../all-tags.txt | sort | tail -n 1)
+
         for version in $(cat ../all-tags.txt); do
+          echo "" 
           echo "========== version:$version =========="
-          
           cd nrf
           git checkout $version
           cd ..
 
           west update
-          west forall -c "$(pwd)/../push-to-gitee.sh $version $GITEE_USER"
-          west forall -c "git submodule foreach --recursive \"$(pwd)/../push-to-gitee.sh $version $GITEE_USER\""
-
+          west forall -c "$(pwd)/../push-to-gitee.sh $version $GITEE_USER $latest_version"
+          west forall -c "git submodule foreach --recursive \"$(pwd)/../push-to-gitee.sh $version $GITEE_USER $latest_version\""
         done
-        
+
         # change repo type to public
         cat ~/merge.json | jq '.[].repo' | sed "s#\"\(.\+\)\"#\1#" \
         | while read line; do
           curl --connect-timeout 15 --max-time 30 --retry 3 -X PATCH --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/'$line'' \
-          -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","has_issues":"false","has_wiki":"false","can_comment":"false","private":"false"}'
+          -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","has_issues":"false","has_wiki":"false","can_comment":"false","private":"false","default_branch":"NCS-latest"}'
           sleep 1
         done
 

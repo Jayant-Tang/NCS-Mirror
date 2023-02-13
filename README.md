@@ -9,11 +9,19 @@
 
 ​	你也可以Fork此项目，并修改配置，从而使此CI定时把NCS的所有子仓库拷贝到你的Gitee个人账号或企业账号上。
 
-> 注意，此项目只会同步仓库的所有tag，而不会同步分支。
+> 注意，此项目只会确保正式版的commit同步过去，但tag、分支名等不会同步过去。
 
 ## 如何从Gitee获取NCS？
 
-​	举例来说，原本从GitHub获取`v2.2.0`版本的命令为：
+​	你可以直接从`NCS-latest`分支获得最新的正式版：
+
+```shell
+mkdir ncs
+cd ncs
+west init -m https://gitee.com/jayant97/sdk-nrf --mr NCS-latest
+```
+
+​	你也可以获取指定的版本正式版。举例来说，**原本**从**GitHub**获取`v2.2.0`版本的命令为：
 
 ```shell
 mkdir ncs
@@ -31,11 +39,15 @@ west init -m https://gitee.com/jayant97/sdk-nrf --mr NCS-v2.2.0
 
 >**为什么分支的名称改变了？**
 >
->​	原本的版本是一个tag，指向一个特定的commit。在镜像拷贝到Gitee之后，tag和commit id都不变。但是，我必须修改仓库中的`west.yml`文件，让manifest中记录的其他仓库全部指向Gitee中的镜像仓库。这就必然导致产生新的commit id，于是我新建了`NCS-vX.X.X`分支，在提交了这些修改后，再推送到Gitee。
+>​	原本的版本是一个tag，指向一个特定的commit。在镜像拷贝到Gitee之后，tag和commit id都不变。但是，此CI项目必须修改仓库中的`west.yml`和`.gitmodules`文件，让manifest中记录的其他仓库全部指向Gitee中的镜像仓库。这就必然导致产生新的commit id，于是脚本会新建`NCS-vX.X.X`分支，在提交了这些修改后，再推送到Gitee。
+>
+>​	在那之后，使用`git push -f`让`NCS-latest`分支强行切换到最新版本的分支上。
 
-## 如何让此项目定时同步NCS到其他个人或企业的Gitee账号上？
+## 我可以在自己的GitHub账号上运行此CI脚本吗？
 
-​	首先，你需要fork此项目，让它成为**你的**GitHub账户上的一个远程仓库。
+​	可以。并且，你还可以把同步的目标仓库改为其他的Gitee个人账户或企业仓库。
+
+​	首先，你需要在GitHub上**Fork**此项目，让它成为**你的GitHub账户**上的一个远程仓库。
 
 ​	此项目的`.github/workflows/ncs-mirror.yml`是此CI项目的脚本文件。其开头有一些环境变量可供修改：
 
@@ -110,7 +122,7 @@ cat ~/repo-list-raw.txt | sort -f | uniq > ~/repo-list.txt
 
 
 
-### 在Gitee上创建空仓库
+###  在Gitee上创建空仓库
 
 ​	使用Gitee API来创建仓库，详情参考：[Gitee API 文档](https://gitee.com/api/v5/swagger#/postV5UserRepos)
 ```shell
@@ -154,7 +166,7 @@ curl --connect-timeout 15 --max-time 30 --retry 3 --retry-delay 2 -X POST \
 3. 修改`west.yml`和`.gitmodules`中的地址与Revision，将其重定向到Gitee上镜像仓库的`NCS-$version分支上`，然后commit
 
    ```shell
-   for file in $(ls -1 | grep "west.yml"); do
+   for file in $(ls -1a | grep "west.yml"); do
        echo "Modifying the $file"
        sed -i 's#url-base:.*https://.\+/.\+#url-base: https://gitee.com/'$gitee_user'#' west.yml > /dev/null
        sed -i 's#revision:.\+#revision: NCS-'$version'#' west.yml > /dev/null
@@ -163,7 +175,7 @@ curl --connect-timeout 15 --max-time 30 --retry 3 --retry-delay 2 -X POST \
        git diff-tree --cc HEAD
    done
    
-   for file in $(ls -1 | grep ".gitmodules"); do
+   for file in $(ls -1a | grep ".gitmodules"); do
        echo "Modifying the $file"
        sed -i 's#url.*=.*https://.\+/.\+/#url = https://gitee.com/'$gitee_user'/#' .gitmodules > /dev/null
        sed -i  's#branch.*=.*#branch = NCS-'$version'#' .gitmodules > /dev/null
@@ -175,19 +187,29 @@ curl --connect-timeout 15 --max-time 30 --retry 3 --retry-delay 2 -X POST \
 
 4. 推送
 
-```shell
-git push gitee-$version HEAD:refs/heads/NCS-$versio
-```
+   ```shell
+   git push gitee-$version HEAD:refs/heads/NCS-$versio
+   ```
 
 > ​	此脚本默认只推送自己生成的`NCS-vX.X.X`分支，从而节约时间。若想把仓库原本的tag全部推送，则需解开脚本中`git push gitee-$version --tags`的注释。
 
+5. 修改`NCS-latest`分支的指向
+
+   ```shell
+   if [ "$version" == "$latest_ver" ]; then
+       git push -f gitee-$version HEAD:refs/heads/NCS-latest
+   fi
+   ```
+
+   
+
 ### 修改仓库权限
 
-​	由于仓库已经不再是空仓库，因此可以把仓库权限设置为公有，从而使所有人都可以下载的到。同样使用：[Gitee API 文档](https://gitee.com/api/v5/swagger#/patchV5ReposOwnerRepo)
+​	由于仓库已经不再是空仓库，因此可以把仓库权限设置为公有，从而使所有人都可以下载的到。然后把默认分支设为`NCS-latest`。同样使用：[Gitee API](https://gitee.com/api/v5/swagger#/patchV5ReposOwnerRepo)
 
 ```shell
 curl --connect-timeout 15 --max-time 30 --retry 3 -X PATCH --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/${{ env.GITEE_USER }}/'$line'' \
-          -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","has_issues":"false","has_wiki":"false","can_comment":"false","private":"false"}'
+          -d '{"access_token":"${{ env.GITEE_TOKEN }}","name":"'$line'","has_issues":"false","has_wiki":"false","can_comment":"false","private":"false","default_branch":"NCS-latest"}'
 ```
 
 ### 任务的缓存与加速

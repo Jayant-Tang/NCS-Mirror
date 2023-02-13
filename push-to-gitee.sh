@@ -1,6 +1,7 @@
 #!/bin/bash
 version=$1
 gitee_user=$2
+latest_ver=$3
 
 
 west list . >/dev/null 2>&1
@@ -21,7 +22,7 @@ else
     echo "[$name] is a west member"
 fi
 
-echo "repo-name:[$name]"
+echo "repo-name:[$name],version:[$version],latest:[$latest_ver]"
 
 git remote add gitee-$version git@gitee.com:$gitee_user/$name
 git remote -v
@@ -30,7 +31,7 @@ git remote -v
 git checkout -b NCS-$version
 
 # change the url in .gitmodules and west
-for file in $(ls -1 | grep "west.yml"); do
+for file in $(ls -1a | grep "west.yml"); do
     echo "Modifying the $file"
     sed -i 's#url-base:.*https://.\+/.\+#url-base: https://gitee.com/'$gitee_user'#' west.yml > /dev/null
     sed -i 's#revision:.\+#revision: NCS-'$version'#' west.yml > /dev/null
@@ -39,7 +40,7 @@ for file in $(ls -1 | grep "west.yml"); do
     git diff-tree --cc HEAD
 done
 
-for file in $(ls -1 | grep ".gitmodules"); do
+for file in $(ls -1a | grep ".gitmodules"); do
      echo "Modifying the $file"
     sed -i 's#url.*=.*https://.\+/.\+/#url = https://gitee.com/'$gitee_user'/#' .gitmodules > /dev/null
     sed -i 's#branch.*=.*#branch = NCS-'$version'#' .gitmodules > /dev/null
@@ -50,5 +51,9 @@ done
 
 git push gitee-$version HEAD:refs/heads/NCS-$version
 #git push gitee-$version --tags
+
+if [ "$version" == "$latest_ver" ]; then
+    git push -f gitee-$version HEAD:refs/heads/NCS-latest
+fi
 
 sleep 1
